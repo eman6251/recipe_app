@@ -37,9 +37,9 @@ export function RecipeView({ recipe }: { recipe: RecipeWithIngredients }) {
   };
 
   return (
-    <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
       {/* Ingredients column */}
-      <section>
+      <section className="rounded-xl border border-black/10 bg-surface p-6 dark:border-white/10">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold">Ingredients</h2>
           <div className="flex items-center rounded-lg border border-black/10 p-0.5 dark:border-white/10">
@@ -97,7 +97,7 @@ export function RecipeView({ recipe }: { recipe: RecipeWithIngredients }) {
       </section>
 
       {/* Instructions column */}
-      <section>
+      <section className="rounded-xl border border-black/10 bg-surface p-6 dark:border-white/10">
         <h2 className="text-lg font-semibold">Preparation</h2>
         <ol className="mt-4 flex flex-col gap-5">
           {recipe.instructions.map((step, i) => {

@@ -45,7 +45,7 @@ export default async function RecipesPage() {
               <li key={recipe.id}>
                 <Link
                   href={`/recipes/${recipe.id}`}
-                  className="flex h-full flex-col rounded-xl border border-black/10 bg-white p-5 transition-colors hover:border-emerald-500/50 dark:border-white/10 dark:bg-zinc-950"
+                  className="flex h-full flex-col rounded-xl border border-black/10 bg-surface p-5 transition-colors hover:border-emerald-500/50 dark:border-white/10"
                 >
                   <h2 className="font-medium leading-snug">{recipe.title}</h2>
                   {recipe.description ? (

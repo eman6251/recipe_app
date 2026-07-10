@@ -52,7 +52,10 @@ function rowsFromInitial(initial?: RecipeWithIngredients): IngredientRow[] {
 }
 
 const inputClass =
-  "rounded-lg border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-white/15 dark:bg-zinc-950";
+  "rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-white/15";
+
+const cardClass =
+  "flex flex-col gap-6 rounded-xl border border-black/10 bg-surface p-6 dark:border-white/10";
 
 export function RecipeForm({ initial, onSubmit, submitLabel }: Props) {
   const [title, setTitle] = useState(initial?.title ?? "");
@@ -147,6 +150,7 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: Props) {
         </p>
       ) : null}
 
+      <section className={cardClass}>
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-medium">Title</span>
         <input
@@ -227,8 +231,10 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: Props) {
           />
         </label>
       </div>
+      </section>
 
       {/* Ingredients */}
+      <section className={cardClass}>
       <fieldset>
         <legend className="mb-2 text-sm font-medium">Ingredients</legend>
         <div className="flex flex-col gap-2">
@@ -286,7 +292,9 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: Props) {
           Add ingredient
         </button>
       </fieldset>
+      </section>
 
+      <section className={cardClass}>
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-medium">
           Instructions{" "}
@@ -328,6 +336,7 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: Props) {
           />
         </label>
       </div>
+      </section>
 
       <div>
         <button

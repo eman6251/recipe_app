@@ -1,26 +1,35 @@
 @import "tailwindcss";
 
+/*
+ * Semantic surfaces:
+ *  - canvas: the page background
+ *  - surface: cards / raised sections / nav
+ * Dark mode is a near-black green rather than pure black.
+ */
 :root {
-  --background: #ffffff;
+  --canvas: #f6f8f6;
+  --surface: #ffffff;
   --foreground: #171717;
 }
 
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #0c120e;
+    --surface: #151d17;
+    --foreground: #e8ede9;
+  }
+}
+
 @theme inline {
-  --color-background: var(--background);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
+  background: var(--canvas);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
 }

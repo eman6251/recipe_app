@@ -18,7 +18,7 @@ export default async function RecipeDetailPage({
 
   return (
     <article>
-      <header className="mb-8 border-b border-black/10 pb-8 dark:border-white/10">
+      <header className="mb-6 rounded-xl border border-black/10 bg-surface p-6 dark:border-white/10">
         <div className="flex items-start justify-between gap-4">
           <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
             {recipe.title}

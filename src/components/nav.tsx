@@ -38,7 +38,7 @@ export function Nav() {
   return (
     <>
       {/* Desktop: left sidebar */}
-      <nav className="hidden md:flex fixed inset-y-0 left-0 w-60 flex-col border-r border-black/10 bg-white px-3 py-6 dark:border-white/10 dark:bg-zinc-950">
+      <nav className="hidden md:flex fixed inset-y-0 left-0 w-60 flex-col border-r border-black/10 bg-surface px-3 py-6 dark:border-white/10">
         <Link href="/" className="mb-8 flex items-center gap-2 px-3">
           <ChefHat className="h-6 w-6 text-emerald-600" />
           <span className="text-lg font-semibold tracking-tight">Skillet</span>
@@ -75,7 +75,7 @@ export function Nav() {
       </nav>
 
       {/* Mobile: bottom tab bar */}
-      <nav className="md:hidden fixed inset-x-0 bottom-0 z-10 flex border-t border-black/10 bg-white/95 backdrop-blur dark:border-white/10 dark:bg-zinc-950/95">
+      <nav className="md:hidden fixed inset-x-0 bottom-0 z-10 flex border-t border-black/10 bg-surface/95 backdrop-blur dark:border-white/10">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const active = isActive(pathname, href);
           return (

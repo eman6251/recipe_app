@@ -65,7 +65,7 @@ export default function Home() {
           <Link
             key={href}
             href={href}
-            className="group flex items-start gap-4 rounded-xl border border-black/10 bg-white p-5 transition-colors hover:border-emerald-500/50 dark:border-white/10 dark:bg-zinc-950"
+            className="group flex items-start gap-4 rounded-xl border border-black/10 bg-surface p-5 transition-colors hover:border-emerald-500/50 dark:border-white/10"
           >
             <span className="rounded-lg bg-emerald-50 p-2.5 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
               <Icon className="h-5 w-5" />

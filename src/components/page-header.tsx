@@ -25,7 +25,7 @@ export function PageHeader({ title, description, action }: PageHeaderProps) {
 /** Temporary placeholder body for pages whose feature isn't built yet. */
 export function ComingSoon({ note }: { note: string }) {
   return (
-    <div className="rounded-xl border border-dashed border-black/15 bg-white/50 p-8 text-center dark:border-white/15 dark:bg-white/[0.02]">
+    <div className="rounded-xl border border-dashed border-black/15 bg-surface/60 p-8 text-center dark:border-white/15">
       <p className="text-sm text-zinc-500 dark:text-zinc-400">{note}</p>
     </div>
   );
