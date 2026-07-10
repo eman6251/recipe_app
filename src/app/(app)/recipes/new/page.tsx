@@ -1,13 +1,17 @@
-import { PageHeader, ComingSoon } from "@/components/page-header";
+"use client";
+
+import { PageHeader } from "@/components/page-header";
+import { RecipeForm } from "../recipe-form";
+import { createRecipe } from "../actions";
 
 export default function NewRecipePage() {
   return (
     <>
       <PageHeader
         title="Add a recipe"
-        description="Paste a caption to auto-fill, or enter it manually."
+        description="Fill it in manually — AI paste-import is coming next."
       />
-      <ComingSoon note="The AI-paste importer and manual entry form land in Phase 4. Paste a TikTok/Instagram caption and Claude will draft the structured recipe for you to review." />
+      <RecipeForm onSubmit={createRecipe} submitLabel="Save recipe" />
     </>
   );
 }
