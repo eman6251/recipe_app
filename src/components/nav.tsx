@@ -8,8 +8,10 @@ import {
   CalendarDays,
   UtensilsCrossed,
   ShoppingCart,
+  LogOut,
   type LucideIcon,
 } from "lucide-react";
+import { signout } from "@/app/login/actions";
 
 type NavItem = {
   href: string;
@@ -61,6 +63,15 @@ export function Nav() {
             );
           })}
         </ul>
+        <form action={signout} className="mt-auto">
+          <button
+            type="submit"
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-black/5 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-zinc-100"
+          >
+            <LogOut className="h-5 w-5" />
+            Sign out
+          </button>
+        </form>
       </nav>
 
       {/* Mobile: bottom tab bar */}

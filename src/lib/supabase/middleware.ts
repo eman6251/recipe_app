@@ -34,7 +34,35 @@ export async function updateSession(request: NextRequest) {
   // IMPORTANT: Do not run any logic between createServerClient and getUser().
   // getUser() revalidates the token; skipping it can cause hard-to-debug
   // random logouts.
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Route protection: everything except /login and /auth/* requires a session.
+  const { pathname } = request.nextUrl;
+  const isPublic = pathname.startsWith("/login") || pathname.startsWith("/auth");
+
+  // Redirects must carry any auth cookies getUser() just refreshed, or the
+  // session refresh is silently lost.
+  const redirectTo = (pathname: string) => {
+    const url = request.nextUrl.clone();
+    url.pathname = pathname;
+    url.search = "";
+    const response = NextResponse.redirect(url);
+    supabaseResponse.cookies
+      .getAll()
+      .forEach((cookie) => response.cookies.set(cookie));
+    return response;
+  };
+
+  if (!user && !isPublic) {
+    return redirectTo("/login");
+  }
+
+  // Already signed in? Skip the login page.
+  if (user && pathname.startsWith("/login")) {
+    return redirectTo("/");
+  }
 
   return supabaseResponse;
 }
