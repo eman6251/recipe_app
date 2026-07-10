@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Plus, X } from "lucide-react";
+import { parseQuantity } from "@/lib/quantity";
 import type { RecipePayload } from "./actions";
 import type { RecipeWithIngredients } from "@/lib/types";
 
@@ -88,6 +89,16 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: Props) {
     e.preventDefault();
     setError(null);
 
+    // Validate quantities up front so "1/2" typos never silently vanish.
+    for (const r of rows) {
+      if (r.item.trim() && r.quantity.trim() && parseQuantity(r.quantity) == null) {
+        setError(
+          `Couldn't read the quantity "${r.quantity}" for "${r.item}". Use formats like 2, 1.5, 1/2, or 1 1/2.`,
+        );
+        return;
+      }
+    }
+
     const payload: RecipePayload = {
       title: title.trim(),
       description: description.trim() || null,
@@ -107,7 +118,7 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: Props) {
         .filter(Boolean),
       ingredients: rows.map((r) => ({
         group_name: r.group_name,
-        quantity: r.quantity ? Number(r.quantity) : null,
+        quantity: parseQuantity(r.quantity),
         unit: r.unit.trim() || null,
         item: r.item,
         note: r.note.trim() || null,
@@ -229,7 +240,7 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: Props) {
               <input
                 value={row.quantity}
                 onChange={(e) => updateRow(row.key, { quantity: e.target.value })}
-                placeholder="2"
+                placeholder="1/2"
                 inputMode="decimal"
                 aria-label="Quantity"
                 className={inputClass}
