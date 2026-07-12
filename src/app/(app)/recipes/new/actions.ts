@@ -84,7 +84,7 @@ export async function parseCaption(caption: string): Promise<ParseResult> {
 
   try {
     const response = await client.messages.parse({
-      model: "claude-opus-4-8",
+      model: "claude-sonnet-5",
       max_tokens: 16000,
       thinking: { type: "adaptive" },
       system: SYSTEM_PROMPT,

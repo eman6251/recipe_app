@@ -265,21 +265,22 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: Props) {
                 aria-label="Ingredient"
                 className={inputClass}
               />
-              <input
-                value={row.note}
-                onChange={(e) => updateRow(row.key, { note: e.target.value })}
-                placeholder="minced"
-                aria-label="Note"
-                className={`${inputClass} hidden md:block`}
-              />
               <button
                 type="button"
                 onClick={() => removeRow(row.key)}
                 aria-label="Remove ingredient"
-                className="flex items-center justify-center rounded-lg px-2 text-zinc-400 transition-colors hover:bg-black/5 hover:text-red-600 dark:hover:bg-white/5"
+                className="flex items-center justify-center rounded-lg px-2 text-zinc-400 transition-colors hover:bg-black/5 hover:text-red-600 dark:hover:bg-white/5 md:order-last"
               >
                 <X className="h-4 w-4" />
               </button>
+              {/* Note wraps to its own line on narrow screens, inline on md+ */}
+              <input
+                value={row.note}
+                onChange={(e) => updateRow(row.key, { note: e.target.value })}
+                placeholder="note — minced, substitutions…"
+                aria-label="Note"
+                className={`${inputClass} col-span-4 md:col-span-1`}
+              />
             </div>
           ))}
         </div>
