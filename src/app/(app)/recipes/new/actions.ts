@@ -39,7 +39,9 @@ const ParsedRecipe = z.object({
     .describe("Ordered steps, one imperative sentence or two per step"),
   tags: z
     .array(z.string())
-    .describe("2-4 lowercase tags like 'chicken', 'high-protein', 'weeknight'"),
+    .describe(
+      "2-4 lowercase tags. The FIRST tag must be the meal type: one of 'breakfast', 'lunch', 'dinner', or 'dessert' (best guess if unclear). Then descriptive tags like 'chicken', 'high-protein', 'weeknight'",
+    ),
   notes: z
     .string()
     .nullable()

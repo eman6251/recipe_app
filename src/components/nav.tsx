@@ -8,6 +8,7 @@ import {
   CalendarDays,
   UtensilsCrossed,
   ShoppingCart,
+  Refrigerator,
   LogOut,
   type LucideIcon,
 } from "lucide-react";
@@ -17,6 +18,8 @@ type NavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
+  /** Shown in the desktop sidebar but not the (space-limited) mobile tab bar. */
+  desktopOnly?: boolean;
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -25,6 +28,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/week", label: "This Week", icon: UtensilsCrossed },
   { href: "/shopping", label: "Shopping", icon: ShoppingCart },
+  { href: "/pantry", label: "Pantry", icon: Refrigerator, desktopOnly: true },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -76,7 +80,7 @@ export function Nav() {
 
       {/* Mobile: bottom tab bar */}
       <nav className="md:hidden fixed inset-x-0 bottom-0 z-10 flex border-t border-black/10 bg-surface/95 backdrop-blur dark:border-white/10">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+        {NAV_ITEMS.filter((item) => !item.desktopOnly).map(({ href, label, icon: Icon }) => {
           const active = isActive(pathname, href);
           return (
             <Link
