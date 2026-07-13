@@ -97,6 +97,15 @@ export async function searchUsdaFood(
     if (food.dataType === "Foundation") score += 0.5;
     if (desc.includes("raw")) score += 0.3; // base ingredient over prepared
 
+    // Recipe quantities are for the as-purchased state: dry noodles, raw
+    // meat. Matching "cooked" nutrient data against dry/raw grams undercounts
+    // by up to 3× — penalize unless the recipe explicitly says cooked.
+    const queryCooked = queryTokens.includes("cooked");
+    if (!queryCooked) {
+      if (descTokens.includes("cooked")) score -= 2;
+      if (descTokens.includes("dry") || descTokens.includes("dried")) score += 0.3;
+    }
+
     if (!best || score > best.score) best = { food, per_100g, score };
   }
 

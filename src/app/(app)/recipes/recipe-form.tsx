@@ -13,7 +13,7 @@ type IngredientRow = {
   item: string;
   note: string;
   group_name: string | null;
-  grams: number | null;
+  grams: string; // editable text; parsed on submit
   fdc_id: number | null;
 };
 
@@ -31,7 +31,7 @@ const newRow = (): IngredientRow => ({
   item: "",
   note: "",
   group_name: null,
-  grams: null,
+  grams: "",
   fdc_id: null,
 });
 
@@ -46,7 +46,7 @@ function rowsFromInitial(initial?: RecipeWithIngredients): IngredientRow[] {
     item: ing.item,
     note: ing.note ?? "",
     group_name: ing.group_name,
-    grams: ing.grams,
+    grams: ing.grams != null ? String(ing.grams) : "",
     fdc_id: ing.fdc_id,
   }));
 }
@@ -119,15 +119,18 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: Props) {
         .split(",")
         .map((t) => t.trim())
         .filter(Boolean),
-      ingredients: rows.map((r) => ({
-        group_name: r.group_name,
-        quantity: parseQuantity(r.quantity),
-        unit: r.unit.trim() || null,
-        item: r.item,
-        note: r.note.trim() || null,
-        grams: r.grams,
-        fdc_id: r.fdc_id,
-      })),
+      ingredients: rows.map((r) => {
+        const grams = r.grams.trim() ? Number(r.grams) : null;
+        return {
+          group_name: r.group_name,
+          quantity: parseQuantity(r.quantity),
+          unit: r.unit.trim() || null,
+          item: r.item,
+          note: r.note.trim() || null,
+          grams: grams != null && Number.isFinite(grams) && grams > 0 ? grams : null,
+          fdc_id: r.fdc_id,
+        };
+      }),
     };
 
     if (!payload.title) {
@@ -241,7 +244,7 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: Props) {
           {rows.map((row) => (
             <div
               key={row.key}
-              className="grid grid-cols-[70px_90px_1fr_auto] gap-2 md:grid-cols-[70px_90px_2fr_1fr_auto]"
+              className="grid grid-cols-[70px_90px_1fr_auto] gap-2 md:grid-cols-[70px_90px_2fr_1fr_80px_auto]"
             >
               <input
                 value={row.quantity}
@@ -273,13 +276,22 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: Props) {
               >
                 <X className="h-4 w-4" />
               </button>
-              {/* Note wraps to its own line on narrow screens, inline on md+ */}
+              {/* Note + grams wrap to their own line on narrow screens */}
               <input
                 value={row.note}
                 onChange={(e) => updateRow(row.key, { note: e.target.value })}
                 placeholder="note — minced, substitutions…"
                 aria-label="Note"
-                className={`${inputClass} col-span-4 md:col-span-1`}
+                className={`${inputClass} col-span-3 md:col-span-1`}
+              />
+              <input
+                value={row.grams}
+                onChange={(e) => updateRow(row.key, { grams: e.target.value })}
+                placeholder="g"
+                inputMode="decimal"
+                aria-label="Grams (for macros)"
+                title="Weight in grams — used for macro computation"
+                className={`${inputClass} md:order-none`}
               />
             </div>
           ))}

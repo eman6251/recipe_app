@@ -16,12 +16,22 @@ import {
 } from "@/lib/usda";
 import type { Macros, RecipeIngredient } from "@/lib/types";
 
+export type MacroLine = {
+  item: string;
+  grams: number | null;
+  /** USDA food description it matched, or null if skipped. */
+  match: string | null;
+  kcal: number | null;
+};
+
 export type MacroComputeResult =
   | {
       ok: true;
       per_serving: Macros;
       matched: number;
       total: number;
+      /** Per-ingredient breakdown for eyeballing bad matches/grams. */
+      lines: MacroLine[];
       /** Ingredient lines that couldn't participate, with the reason. */
       skipped: { item: string; reason: string }[];
     }
@@ -117,6 +127,7 @@ export async function computeMacros(
   };
 
   const updates: Partial<RecipeIngredient>[] = [];
+  const lines: MacroLine[] = [];
   let total: Macros = { kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0 };
   let matched = 0;
 
@@ -125,6 +136,7 @@ export async function computeMacros(
       const grams = ing.grams ?? estimates.get(index) ?? null;
       if (grams == null || grams <= 0) {
         skipped.push({ item: ing.item, reason: "no gram estimate" });
+        lines.push({ item: ing.item, grams: null, match: null, kcal: null });
         continue;
       }
 
@@ -132,18 +144,31 @@ export async function computeMacros(
       if (!force && ing.macros && ing.grams === grams && ing.fdc_id) {
         total = addMacros(total, ing.macros);
         matched++;
+        lines.push({
+          item: ing.item,
+          grams,
+          match: `cached (FDC #${ing.fdc_id})`,
+          kcal: ing.macros.kcal,
+        });
         continue;
       }
 
       const match = await lookup(ing.item);
       if (!match) {
         skipped.push({ item: ing.item, reason: "no USDA match" });
+        lines.push({ item: ing.item, grams, match: null, kcal: null });
         continue;
       }
 
       const lineMacros = roundMacros(scaleMacros(match.per_100g, grams));
       total = addMacros(total, lineMacros);
       matched++;
+      lines.push({
+        item: ing.item,
+        grams,
+        match: match.description,
+        kcal: lineMacros.kcal,
+      });
       updates.push({ id: ing.id, grams, fdc_id: match.fdc_id, macros: lineMacros });
     }
   } catch (err) {
@@ -191,6 +216,7 @@ export async function computeMacros(
     per_serving,
     matched,
     total: recipe.recipe_ingredients.length,
+    lines,
     skipped,
   };
 }

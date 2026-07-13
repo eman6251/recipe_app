@@ -53,6 +53,30 @@ export function MacroButton({
               ))}
             </ul>
           ) : null}
+          <details className="mt-2">
+            <summary className="cursor-pointer text-emerald-700 dark:text-emerald-400">
+              Per-ingredient breakdown
+            </summary>
+            <table className="mt-2 w-full text-xs">
+              <tbody>
+                {result.lines.map((line, i) => (
+                  <tr
+                    key={i}
+                    className="border-t border-emerald-600/15 text-emerald-800/90 dark:text-emerald-300/90"
+                  >
+                    <td className="py-1 pr-2 font-medium">{line.item}</td>
+                    <td className="py-1 pr-2 whitespace-nowrap">
+                      {line.grams != null ? `${Math.round(line.grams)}g` : "—"}
+                    </td>
+                    <td className="py-1 pr-2">{line.match ?? "no match"}</td>
+                    <td className="py-1 text-right whitespace-nowrap">
+                      {line.kcal != null ? `${Math.round(line.kcal)} kcal` : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </details>
         </div>
       ) : null}
     </div>
