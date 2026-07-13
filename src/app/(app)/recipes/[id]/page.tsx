@@ -4,6 +4,7 @@ import { Clock, ExternalLink, Flame, Pencil } from "lucide-react";
 import { getRecipe } from "@/lib/queries/recipes";
 import { RecipeView } from "./recipe-view";
 import { DeleteRecipeButton } from "./delete-button";
+import { MacroButton } from "./macro-button";
 
 export default async function RecipeDetailPage({
   params,
@@ -88,6 +89,8 @@ export default async function RecipeDetailPage({
             ))}
           </div>
         ) : null}
+
+        <MacroButton recipeId={recipe.id} hasMacros={!!macros} />
       </header>
 
       <RecipeView recipe={recipe} />
