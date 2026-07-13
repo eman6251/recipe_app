@@ -7,7 +7,8 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getRecipe } from "@/lib/queries/recipes";
 import {
-  searchUsdaFood,
+  searchUsdaCandidates,
+  pickBestLocal,
   scaleMacros,
   addMacros,
   roundMacros,
@@ -81,6 +82,84 @@ async function fillMissingGrams(
   return out;
 }
 
+const MatchChoices = z.object({
+  choices: z.array(
+    z.object({
+      item: z.string().describe("The ingredient exactly as given"),
+      fdc_id: z
+        .number()
+        .nullable()
+        .describe("fdc_id of the best candidate, or null if none represents this ingredient"),
+    }),
+  ),
+});
+
+/**
+ * Pick the best USDA candidate per ingredient. Keyword scoring alone
+ * mismatches badly ("palm sugar" → "Hearts of palm"), so Claude chooses in a
+ * single batched call; the local scorer is the no-key/error fallback.
+ */
+async function chooseMatches(
+  needs: { item: string; candidates: UsdaMatch[] }[],
+): Promise<Map<string, UsdaMatch | null>> {
+  const out = new Map<string, UsdaMatch | null>();
+  const undecided = needs.filter((n) => n.candidates.length > 0);
+  for (const n of needs) {
+    if (n.candidates.length === 0) out.set(n.item, null);
+  }
+  if (undecided.length === 0) return out;
+
+  if (process.env.ANTHROPIC_API_KEY) {
+    try {
+      const client = new Anthropic();
+      const listing = undecided
+        .map(
+          (n) =>
+            `${n.item}:\n${n.candidates
+              .map((c) => `  [${c.fdc_id}] ${c.description}`)
+              .join("\n")}`,
+        )
+        .join("\n\n");
+
+      const response = await client.messages.parse({
+        model: "claude-sonnet-5",
+        max_tokens: 4000,
+        system:
+          "For each recipe ingredient, pick the USDA food entry that best represents it nutritionally as used in home cooking. Recipe quantities describe the as-purchased state, so prefer raw/dry entries over cooked ones. Return null when no candidate is genuinely the same food (a wrong-food match is worse than no match).",
+        messages: [{ role: "user", content: listing }],
+        output_config: { format: zodOutputFormat(MatchChoices) },
+      });
+
+      const byItem = new Map(
+        (response.parsed_output?.choices ?? []).map((c) => [
+          c.item.toLowerCase().trim(),
+          c.fdc_id,
+        ]),
+      );
+
+      for (const n of undecided) {
+        const chosen = byItem.get(n.item);
+        if (chosen === null) {
+          out.set(n.item, null); // Claude says nothing fits — trust it
+        } else if (chosen !== undefined) {
+          const match = n.candidates.find((c) => c.fdc_id === chosen);
+          out.set(n.item, match ?? pickBestLocal(n.item, n.candidates));
+        } else {
+          out.set(n.item, pickBestLocal(n.item, n.candidates));
+        }
+      }
+      return out;
+    } catch {
+      // fall through to local scoring
+    }
+  }
+
+  for (const n of undecided) {
+    out.set(n.item, pickBestLocal(n.item, n.candidates));
+  }
+  return out;
+}
+
 export async function computeMacros(
   recipeId: string,
   force = false,
@@ -116,69 +195,80 @@ export async function computeMacros(
     })),
   );
 
-  // 2. Resolve each line to USDA data (dedupe identical item names).
-  const searchCache = new Map<string, UsdaMatch | null>();
-  const lookup = async (item: string) => {
-    const key = item.toLowerCase().trim();
-    if (!searchCache.has(key)) {
-      searchCache.set(key, await searchUsdaFood(key, apiKey));
-    }
-    return searchCache.get(key)!;
-  };
+  const gramsFor = (ing: RecipeIngredient, index: number) =>
+    ing.grams ?? estimates.get(index) ?? null;
 
+  // 2. Search USDA for every line that needs a (re)match, then let Claude
+  //    choose among candidates in one batched call.
+  const needLookup = new Map<string, UsdaMatch[]>();
+  for (const [index, ing] of recipe.recipe_ingredients.entries()) {
+    const grams = gramsFor(ing, index);
+    if (grams == null || grams <= 0) continue;
+    if (!force && ing.macros && ing.grams === grams && ing.fdc_id) continue;
+    needLookup.set(ing.item.toLowerCase().trim(), []);
+  }
+
+  try {
+    await Promise.all(
+      [...needLookup.keys()].map(async (key) => {
+        needLookup.set(key, await searchUsdaCandidates(key, apiKey));
+      }),
+    );
+  } catch (err) {
+    if (err instanceof UsdaAuthError) {
+      return { ok: false, error: "USDA rejected the API key — double-check USDA_API_KEY in .env.local." };
+    }
+    return { ok: false, error: err instanceof Error ? err.message : "USDA lookup failed." };
+  }
+
+  const matches = await chooseMatches(
+    [...needLookup.entries()].map(([item, candidates]) => ({ item, candidates })),
+  );
+
+  // 3. Compute per-line macros and the recipe rollup.
   const updates: Partial<RecipeIngredient>[] = [];
   const lines: MacroLine[] = [];
   let total: Macros = { kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0 };
   let matched = 0;
 
-  try {
-    for (const [index, ing] of recipe.recipe_ingredients.entries()) {
-      const grams = ing.grams ?? estimates.get(index) ?? null;
-      if (grams == null || grams <= 0) {
-        skipped.push({ item: ing.item, reason: "no gram estimate" });
-        lines.push({ item: ing.item, grams: null, match: null, kcal: null });
-        continue;
-      }
+  for (const [index, ing] of recipe.recipe_ingredients.entries()) {
+    const grams = gramsFor(ing, index);
+    if (grams == null || grams <= 0) {
+      skipped.push({ item: ing.item, reason: "no gram estimate" });
+      lines.push({ item: ing.item, grams: null, match: null, kcal: null });
+      continue;
+    }
 
-      // Reuse cached line macros unless forced or grams changed.
-      if (!force && ing.macros && ing.grams === grams && ing.fdc_id) {
-        total = addMacros(total, ing.macros);
-        matched++;
-        lines.push({
-          item: ing.item,
-          grams,
-          match: `cached (FDC #${ing.fdc_id})`,
-          kcal: ing.macros.kcal,
-        });
-        continue;
-      }
-
-      const match = await lookup(ing.item);
-      if (!match) {
-        skipped.push({ item: ing.item, reason: "no USDA match" });
-        lines.push({ item: ing.item, grams, match: null, kcal: null });
-        continue;
-      }
-
-      const lineMacros = roundMacros(scaleMacros(match.per_100g, grams));
-      total = addMacros(total, lineMacros);
+    // Reuse cached line macros unless forced or grams changed.
+    if (!force && ing.macros && ing.grams === grams && ing.fdc_id) {
+      total = addMacros(total, ing.macros);
       matched++;
       lines.push({
         item: ing.item,
         grams,
-        match: match.description,
-        kcal: lineMacros.kcal,
+        match: `cached (FDC #${ing.fdc_id})`,
+        kcal: ing.macros.kcal,
       });
-      updates.push({ id: ing.id, grams, fdc_id: match.fdc_id, macros: lineMacros });
+      continue;
     }
-  } catch (err) {
-    if (err instanceof UsdaAuthError) {
-      return { ok: false, error: "USDA rejected the API key — double-check USDA_API_KEY in .env.local." };
+
+    const match = matches.get(ing.item.toLowerCase().trim()) ?? null;
+    if (!match) {
+      skipped.push({ item: ing.item, reason: "no USDA match" });
+      lines.push({ item: ing.item, grams, match: null, kcal: null });
+      continue;
     }
-    return {
-      ok: false,
-      error: err instanceof Error ? err.message : "USDA lookup failed.",
-    };
+
+    const lineMacros = roundMacros(scaleMacros(match.per_100g, grams));
+    total = addMacros(total, lineMacros);
+    matched++;
+    lines.push({
+      item: ing.item,
+      grams,
+      match: match.description,
+      kcal: lineMacros.kcal,
+    });
+    updates.push({ id: ing.id, grams, fdc_id: match.fdc_id, macros: lineMacros });
   }
 
   if (matched === 0) {
@@ -188,7 +278,7 @@ export async function computeMacros(
     };
   }
 
-  // 3. Persist per-line caches + the per-serving rollup.
+  // 4. Persist per-line caches + the per-serving rollup.
   await Promise.all(
     updates.map(({ id, ...fields }) =>
       supabase.from("recipe_ingredients").update(fields).eq("id", id!),

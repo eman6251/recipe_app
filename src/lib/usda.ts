@@ -53,16 +53,16 @@ function extractMacros(food: FdcFood): Macros | null {
 
 export class UsdaAuthError extends Error {}
 
-/** Search FDC for an ingredient name; return the best usable match. */
-export async function searchUsdaFood(
+/** Search FDC for an ingredient; return all candidates with complete macros. */
+export async function searchUsdaCandidates(
   query: string,
   apiKey: string,
-): Promise<UsdaMatch | null> {
+): Promise<UsdaMatch[]> {
   const url = new URL("https://api.nal.usda.gov/fdc/v1/foods/search");
   url.searchParams.set("api_key", apiKey);
   url.searchParams.set("query", query);
   url.searchParams.set("dataType", "Foundation,SR Legacy");
-  url.searchParams.set("pageSize", "6");
+  url.searchParams.set("pageSize", "10"); // rich candidate set for the chooser
 
   const res = await fetch(url, { cache: "no-store" });
   if (res.status === 403) {
@@ -75,18 +75,32 @@ export async function searchUsdaFood(
   const data = (await res.json()) as { foods?: FdcFood[] };
   const foods = data.foods ?? [];
 
-  // USDA search ranking is unreliable ("olive oil" → "Anchovies, canned in
-  // olive oil"), so score candidates ourselves. Descriptions are
-  // comma-inverted ("Oil, olive, extra virgin") — the head noun coming first
-  // is the strongest relevance signal.
-  const queryTokens = query.toLowerCase().split(/[^a-z]+/).filter(Boolean);
-
-  let best: { food: FdcFood; per_100g: Macros; score: number } | null = null;
+  const out: UsdaMatch[] = [];
   for (const food of foods) {
     const per_100g = extractMacros(food);
-    if (!per_100g) continue;
+    if (per_100g) {
+      out.push({ fdc_id: food.fdcId, description: food.description, per_100g });
+    }
+  }
+  return out;
+}
 
-    const desc = food.description.toLowerCase();
+/**
+ * Heuristic candidate pick — fallback when Claude isn't available. USDA
+ * search ranking alone is unreliable ("olive oil" → "Anchovies, canned in
+ * olive oil"). Descriptions are comma-inverted ("Oil, olive, extra virgin"),
+ * so a head-noun match is the strongest signal.
+ */
+export function pickBestLocal(
+  query: string,
+  candidates: UsdaMatch[],
+): UsdaMatch | null {
+  const queryTokens = query.toLowerCase().split(/[^a-z]+/).filter(Boolean);
+  const queryCooked = queryTokens.includes("cooked");
+
+  let best: { match: UsdaMatch; score: number } | null = null;
+  for (const match of candidates) {
+    const desc = match.description.toLowerCase();
     const descTokens = desc.split(/[^a-z]+/).filter(Boolean);
     const head = desc.split(",")[0].trim();
 
@@ -94,27 +108,18 @@ export async function searchUsdaFood(
     if (queryTokens.some((t) => head === t || head.startsWith(t))) score += 3;
     score += queryTokens.filter((t) => descTokens.includes(t)).length;
     score -= descTokens.length * 0.1; // prefer simpler foods
-    if (food.dataType === "Foundation") score += 0.5;
     if (desc.includes("raw")) score += 0.3; // base ingredient over prepared
 
-    // Recipe quantities are for the as-purchased state: dry noodles, raw
-    // meat. Matching "cooked" nutrient data against dry/raw grams undercounts
-    // by up to 3× — penalize unless the recipe explicitly says cooked.
-    const queryCooked = queryTokens.includes("cooked");
+    // Recipe grams describe the as-purchased state (dry noodles, raw meat);
+    // "cooked" nutrient data against dry grams undercounts up to 3×.
     if (!queryCooked) {
       if (descTokens.includes("cooked")) score -= 2;
       if (descTokens.includes("dry") || descTokens.includes("dried")) score += 0.3;
     }
 
-    if (!best || score > best.score) best = { food, per_100g, score };
+    if (!best || score > best.score) best = { match, score };
   }
-
-  if (!best) return null;
-  return {
-    fdc_id: best.food.fdcId,
-    description: best.food.description,
-    per_100g: best.per_100g,
-  };
+  return best?.match ?? null;
 }
 
 export function scaleMacros(per100g: Macros, grams: number): Macros {
