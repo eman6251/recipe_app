@@ -27,6 +27,16 @@ function tokens(s: string): string[] {
   return normalize(s).split(" ").filter(Boolean).map(singularize);
 }
 
+/**
+ * Grouping key for aggregating the same ingredient across recipes (shopping
+ * list). Unlike `covers`, this is exact-match, not subset — "onion" and
+ * "green onion" must stay separate items you'd buy independently, even
+ * though `covers` treats them as interchangeable for fridge search.
+ */
+export function canonicalKey(item: string): string {
+  return tokens(item).join(" ");
+}
+
 /** Does `have` (a fridge/pantry term) cover `need` (an ingredient line item)? */
 export function covers(have: string, need: string): boolean {
   const haveTokens = tokens(have);

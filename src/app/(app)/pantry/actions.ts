@@ -7,14 +7,20 @@ export async function addPantryItem(formData: FormData) {
   const name = (formData.get("name") as string)?.trim().toLowerCase();
   if (!name) return;
 
+  const thresholdRaw = (formData.get("threshold") as string)?.trim();
+  const threshold = thresholdRaw ? Number(thresholdRaw) : null;
+  const small_amount_g = threshold && threshold > 0 ? threshold : null;
+
   const supabase = await createClient();
-  // Upsert so re-adding an existing staple is a no-op instead of an error.
+  // Upsert on (user_id, name) so re-adding an existing staple updates its
+  // threshold instead of erroring — the edit path for now.
   await supabase
     .from("pantry_items")
-    .upsert({ name }, { onConflict: "user_id,name", ignoreDuplicates: true });
+    .upsert({ name, small_amount_g }, { onConflict: "user_id,name" });
 
   revalidatePath("/pantry");
   revalidatePath("/recipes");
+  revalidatePath("/shopping");
 }
 
 export async function deletePantryItem(id: string) {
@@ -23,4 +29,5 @@ export async function deletePantryItem(id: string) {
 
   revalidatePath("/pantry");
   revalidatePath("/recipes");
+  revalidatePath("/shopping");
 }

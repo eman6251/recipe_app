@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Flame,
   Plus,
+  ShoppingCart,
   X,
 } from "lucide-react";
 import { addDays, dayLabel, fromISODate, isSameDay, toISODate } from "@/lib/dates";
@@ -132,6 +133,13 @@ export function WeekView({
             className="rounded-lg p-2 text-zinc-500 hover:bg-black/5 dark:hover:bg-white/5"
           >
             <ChevronRight className="h-4 w-4" />
+          </Link>
+          <Link
+            href={`/shopping?start=${monday}`}
+            className="ml-2 inline-flex items-center gap-1.5 rounded-lg border border-black/10 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-black/5 dark:border-white/10 dark:text-zinc-400 dark:hover:bg-white/5"
+          >
+            <ShoppingCart className="h-3.5 w-3.5" />
+            Shopping list
           </Link>
         </div>
       </div>

@@ -23,13 +23,21 @@ export default async function PantryPage() {
       />
 
       <section className="flex flex-col gap-5 rounded-xl border border-black/10 bg-surface p-6 dark:border-white/10">
-        <form action={addPantryItem} className="flex gap-2">
+        <form action={addPantryItem} className="flex flex-wrap gap-2">
           <input
             name="name"
             required
             placeholder="olive oil"
             autoComplete="off"
             className="w-full max-w-xs rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-white/15"
+          />
+          <input
+            name="threshold"
+            type="number"
+            min="1"
+            placeholder="restock if a week needs >___g (optional)"
+            title="If a week's recipes need more than this many grams total, the shopping list will flag it as a restock instead of assuming you're stocked"
+            className="w-64 rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-white/15"
           />
           <button
             type="submit"

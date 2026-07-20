@@ -24,7 +24,17 @@ export function PantryList({ items }: { items: PantryItem[] }) {
           key={item.id}
           className="group inline-flex items-center gap-1.5 rounded-full bg-emerald-50 py-1 pl-3 pr-1.5 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
         >
-          {item.name}
+          <span>
+            {item.name}
+            {item.small_amount_g ? (
+              <span
+                className="ml-1.5 text-[10px] font-medium text-emerald-600/70 dark:text-emerald-400/60"
+                title={`Shopping list flags this as a restock if a week needs more than ${item.small_amount_g}g`}
+              >
+                &gt;{item.small_amount_g}g
+              </span>
+            ) : null}
+          </span>
           <button
             onClick={() => startTransition(() => deletePantryItem(item.id))}
             aria-label={`Remove ${item.name}`}
