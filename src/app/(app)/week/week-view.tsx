@@ -57,18 +57,18 @@ function MacroStrip({ m, label }: { m: Macros; label?: string }) {
 }
 
 export function WeekView({
-  monday,
+  weekStart,
   meals,
   recipes,
 }: {
-  monday: string; // YYYY-MM-DD of week start
+  weekStart: string; // YYYY-MM-DD of week start
   meals: PlannedMealWithRecipe[];
   recipes: RecipeOption[];
 }) {
   const [dialogDate, setDialogDate] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
-  const start = fromISODate(monday);
+  const start = fromISODate(weekStart);
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
   const today = new Date();
 
@@ -105,8 +105,8 @@ export function WeekView({
         }
       : ZERO;
 
-  const prevMonday = toISODate(addDays(start, -7));
-  const nextMonday = toISODate(addDays(start, 7));
+  const prevWeekStart = toISODate(addDays(start, -7));
+  const nextWeekStart = toISODate(addDays(start, 7));
   const weekRangeLabel = `${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${addDays(start, 6).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
 
   return (
@@ -115,7 +115,7 @@ export function WeekView({
         <h2 className="text-lg font-semibold">{weekRangeLabel}</h2>
         <div className="flex items-center gap-1">
           <Link
-            href={`/week?start=${prevMonday}`}
+            href={`/week?start=${prevWeekStart}`}
             aria-label="Previous week"
             className="rounded-lg p-2 text-zinc-500 hover:bg-black/5 dark:hover:bg-white/5"
           >
@@ -128,14 +128,14 @@ export function WeekView({
             This week
           </Link>
           <Link
-            href={`/week?start=${nextMonday}`}
+            href={`/week?start=${nextWeekStart}`}
             aria-label="Next week"
             className="rounded-lg p-2 text-zinc-500 hover:bg-black/5 dark:hover:bg-white/5"
           >
             <ChevronRight className="h-4 w-4" />
           </Link>
           <Link
-            href={`/shopping?start=${monday}`}
+            href={`/shopping?start=${weekStart}`}
             className="ml-2 inline-flex items-center gap-1.5 rounded-lg border border-black/10 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-black/5 dark:border-white/10 dark:text-zinc-400 dark:hover:bg-white/5"
           >
             <ShoppingCart className="h-3.5 w-3.5" />

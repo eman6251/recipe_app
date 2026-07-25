@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { X } from "lucide-react";
 import { addPlannedMeal } from "@/app/(app)/calendar/actions";
-import { dayLabel, fromISODate } from "@/lib/dates";
+import { addDays, dayLabel, fromISODate } from "@/lib/dates";
 import type { MealSlot } from "@/lib/types";
 import type { RecipeOption } from "@/lib/queries/planner";
 
@@ -23,9 +23,22 @@ export function MealDialog({
 }) {
   const [recipeId, setRecipeId] = useState(recipes[0]?.id ?? "");
   const [slot, setSlot] = useState<MealSlot>("dinner");
-  const [servings, setServings] = useState("1");
+  const [portions, setPortions] = useState("1");
+  const [spread, setSpread] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const portionCount = Number(portions) || 1;
+  const days = Math.max(1, Math.round(portionCount));
+  const willSpread = spread && days > 1;
+
+  const short = (d: Date) =>
+    d.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+  const start = fromISODate(date);
 
   const submit = () => {
     setError(null);
@@ -34,7 +47,8 @@ export function MealDialog({
         recipe_id: recipeId,
         planned_on: date,
         meal_slot: slot,
-        servings: Number(servings) || 1,
+        portions: portionCount,
+        spread,
       });
       if (result.error) setError(result.error);
       else onClose();
@@ -104,10 +118,10 @@ export function MealDialog({
                 </select>
               </label>
               <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium">Servings</span>
+                <span className="text-sm font-medium">Portions</span>
                 <input
-                  value={servings}
-                  onChange={(e) => setServings(e.target.value)}
+                  value={portions}
+                  onChange={(e) => setPortions(e.target.value)}
                   type="number"
                   min="0.5"
                   step="0.5"
@@ -116,12 +130,31 @@ export function MealDialog({
               </label>
             </div>
 
+            <label className="flex items-start gap-2.5">
+              <input
+                type="checkbox"
+                checked={spread}
+                onChange={(e) => setSpread(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-emerald-600"
+              />
+              <span className="text-sm">
+                Spread across days
+                <span className="block text-xs text-zinc-500 dark:text-zinc-400">
+                  {willSpread
+                    ? `Adds one portion a day, ${short(start)} → ${short(addDays(start, days - 1))}.`
+                    : portionCount === 1
+                      ? `Adds one portion on ${short(start)}.`
+                      : `Off — adds all ${portionCount} portions to ${short(start)}.`}
+                </span>
+              </span>
+            </label>
+
             <button
               onClick={submit}
               disabled={pending || !recipeId}
               className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
             >
-              {pending ? "Adding…" : "Add to plan"}
+              {pending ? "Adding…" : willSpread ? `Add ${days} days` : "Add to plan"}
             </button>
           </div>
         )}

@@ -2,26 +2,48 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { addDays, fromISODate, toISODate } from "@/lib/dates";
 import type { MealSlot } from "@/lib/types";
 
 function revalidatePlanner() {
   revalidatePath("/calendar");
   revalidatePath("/week");
+  revalidatePath("/shopping");
 }
 
 export async function addPlannedMeal(input: {
   recipe_id: string;
   planned_on: string; // YYYY-MM-DD
   meal_slot: MealSlot;
-  servings: number;
+  portions: number;
+  /**
+   * Meal-prep default: cooking N portions means eating one a day for N days,
+   * so spread them across consecutive days instead of stacking them on one.
+   */
+  spread: boolean;
 }): Promise<{ error?: string }> {
   const supabase = await createClient();
-  const { error } = await supabase.from("planned_meals").insert({
-    recipe_id: input.recipe_id,
-    planned_on: input.planned_on,
-    meal_slot: input.meal_slot,
-    servings: input.servings > 0 ? input.servings : 1,
-  });
+  const { recipe_id, meal_slot } = input;
+  const portions = input.portions > 0 ? input.portions : 1;
+
+  const rows =
+    input.spread && portions > 1
+      ? Array.from({ length: Math.round(portions) }, (_, i) => ({
+          recipe_id,
+          meal_slot,
+          planned_on: toISODate(addDays(fromISODate(input.planned_on), i)),
+          servings: 1,
+        }))
+      : [
+          {
+            recipe_id,
+            meal_slot,
+            planned_on: input.planned_on,
+            servings: portions,
+          },
+        ];
+
+  const { error } = await supabase.from("planned_meals").insert(rows);
 
   if (error) return { error: error.message };
   revalidatePlanner();

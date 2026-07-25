@@ -11,10 +11,10 @@ import {
 import { addDays, fromISODate, toISODate } from "@/lib/dates";
 import type { ShoppingLine } from "@/lib/shopping";
 
-function weekRangeLabel(monday: Date): string {
+function weekRangeLabel(weekStart: Date): string {
   const fmt = (d: Date) =>
     d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  return `${fmt(monday)} – ${fmt(addDays(monday, 6))}`;
+  return `${fmt(weekStart)} – ${fmt(addDays(weekStart, 6))}`;
 }
 
 /** Persist checked items per-week in localStorage — no server round trip needed. */
@@ -51,21 +51,21 @@ function useCheckedItems(storageKey: string) {
 }
 
 export function ShoppingList({
-  monday,
+  weekStart,
   mealCount,
   toBuy,
   covered,
 }: {
-  monday: string; // YYYY-MM-DD
+  weekStart: string; // YYYY-MM-DD
   mealCount: number;
   toBuy: ShoppingLine[];
   covered: ShoppingLine[];
 }) {
-  const start = fromISODate(monday);
-  const prevMonday = toISODate(addDays(start, -7));
-  const nextMonday = toISODate(addDays(start, 7));
+  const start = fromISODate(weekStart);
+  const prevWeekStart = toISODate(addDays(start, -7));
+  const nextWeekStart = toISODate(addDays(start, 7));
 
-  const { checked, toggle, reset } = useCheckedItems(`shopping-checked:${monday}`);
+  const { checked, toggle, reset } = useCheckedItems(`shopping-checked:${weekStart}`);
   const remaining = toBuy.filter((l) => !checked.has(l.key)).length;
 
   return (
@@ -74,7 +74,7 @@ export function ShoppingList({
         <h2 className="text-lg font-semibold">{weekRangeLabel(start)}</h2>
         <div className="flex items-center gap-1">
           <Link
-            href={`/shopping?start=${prevMonday}`}
+            href={`/shopping?start=${prevWeekStart}`}
             aria-label="Previous week"
             className="rounded-lg p-2 text-zinc-500 hover:bg-black/5 dark:hover:bg-white/5"
           >
@@ -87,7 +87,7 @@ export function ShoppingList({
             This week
           </Link>
           <Link
-            href={`/shopping?start=${nextMonday}`}
+            href={`/shopping?start=${nextWeekStart}`}
             aria-label="Next week"
             className="rounded-lg p-2 text-zinc-500 hover:bg-black/5 dark:hover:bg-white/5"
           >
@@ -101,7 +101,7 @@ export function ShoppingList({
           <p className="font-medium">Nothing planned this week</p>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
             <Link
-              href={`/week?start=${monday}`}
+              href={`/week?start=${weekStart}`}
               className="text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400"
             >
               Plan some meals

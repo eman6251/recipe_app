@@ -19,11 +19,13 @@ export function addDays(d: Date, n: number): Date {
   return out;
 }
 
-/** Monday of the week containing d. */
+/**
+ * Sunday of the week containing d. Weeks start Sunday because that's meal-prep
+ * day — the week's cooking and the week's plan line up.
+ */
 export function startOfWeek(d: Date): Date {
   const out = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const dow = (out.getDay() + 6) % 7; // Mon=0 … Sun=6
-  return addDays(out, -dow);
+  return addDays(out, -out.getDay()); // getDay(): Sun=0 … Sat=6
 }
 
 export function isSameDay(a: Date, b: Date): boolean {
@@ -34,7 +36,7 @@ export function isSameDay(a: Date, b: Date): boolean {
   );
 }
 
-/** All days of the month's calendar grid: full weeks, Monday-start. */
+/** All days of the month's calendar grid: full weeks, Sunday-start. */
 export function calendarGrid(year: number, monthIdx: number): Date[][] {
   const first = new Date(year, monthIdx, 1);
   const last = new Date(year, monthIdx + 1, 0);
@@ -52,7 +54,7 @@ export function calendarGrid(year: number, monthIdx: number): Date[][] {
   return weeks;
 }
 
-export const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+export const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function monthLabel(year: number, monthIdx: number): string {
   return new Date(year, monthIdx, 1).toLocaleDateString("en-US", {

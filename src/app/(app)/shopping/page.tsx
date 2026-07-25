@@ -12,13 +12,13 @@ export default async function ShoppingPage({
 }) {
   const { start } = await searchParams;
 
-  const monday =
+  const weekStart =
     start && /^\d{4}-\d{2}-\d{2}$/.test(start)
       ? startOfWeek(fromISODate(start))
       : startOfWeek(new Date());
 
-  const from = toISODate(monday);
-  const to = toISODate(addDays(monday, 6));
+  const from = toISODate(weekStart);
+  const to = toISODate(addDays(weekStart, 6));
 
   const [planned, pantry] = await Promise.all([
     listPlannedMealsWithIngredients(from, to),
@@ -35,7 +35,7 @@ export default async function ShoppingPage({
         description="Generated from your planned meals, minus pantry staples."
       />
       <ShoppingList
-        monday={from}
+        weekStart={from}
         mealCount={planned.length}
         toBuy={toBuy}
         covered={covered}
