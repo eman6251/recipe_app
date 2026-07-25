@@ -53,18 +53,43 @@ function extractMacros(food: FdcFood): Macros | null {
 
 export class UsdaAuthError extends Error {}
 
-/** Search FDC for an ingredient; return all candidates with complete macros. */
-export async function searchUsdaCandidates(
+// Foundation + SR Legacy are lab-measured but miss many everyday items
+// ("Chocolate chips" only exists in the survey set). Branded is noisier and
+// only worth searching when nothing else turns up.
+// Lab-measured base ingredients ("Crustaceans, shrimp, raw") and everyday
+// composite foods ("Chocolate chips") live in different datasets and rank
+// against each other badly in one query — searched together, survey dishes
+// crowd raw ingredients out entirely. Query them separately and merge.
+const LAB_DATATYPES = ["Foundation", "SR Legacy"];
+const SURVEY_DATATYPES = ["Survey (FNDDS)"];
+const BRANDED_DATATYPES = ["Branded"];
+
+async function fetchCandidates(
   query: string,
   apiKey: string,
+  dataType: string[],
 ): Promise<UsdaMatch[]> {
-  const url = new URL("https://api.nal.usda.gov/fdc/v1/foods/search");
-  url.searchParams.set("api_key", apiKey);
-  url.searchParams.set("query", query);
-  url.searchParams.set("dataType", "Foundation,SR Legacy");
-  url.searchParams.set("pageSize", "10"); // rich candidate set for the chooser
+  // POST rather than GET: the query-string form intermittently gets a 400 from
+  // FDC's edge proxy when spaces are +-encoded in both query and dataType.
+  // The JSON body sidesteps URL encoding entirely.
+  const send = () =>
+    fetch(
+      `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${encodeURIComponent(apiKey.trim())}`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ query, dataType, pageSize: 8 }),
+        cache: "no-store",
+      },
+    );
 
-  const res = await fetch(url, { cache: "no-store" });
+  // One retry so a blip doesn't drop an ingredient from the whole computation.
+  let res = await send();
+  if (!res.ok && res.status !== 403 && res.status !== 429) {
+    await new Promise((r) => setTimeout(r, 400));
+    res = await send();
+  }
+
   if (res.status === 403) {
     throw new UsdaAuthError("USDA API rejected the key (403).");
   }
@@ -73,16 +98,66 @@ export async function searchUsdaCandidates(
   }
 
   const data = (await res.json()) as { foods?: FdcFood[] };
-  const foods = data.foods ?? [];
-
   const out: UsdaMatch[] = [];
-  for (const food of foods) {
+  for (const food of data.foods ?? []) {
     const per_100g = extractMacros(food);
     if (per_100g) {
       out.push({ fdc_id: food.fdcId, description: food.description, per_100g });
     }
   }
   return out;
+}
+
+/** True if some candidate's description contains every token of `phrase`. */
+function covers(candidates: UsdaMatch[], phrase: string): boolean {
+  const tokens = phrase.split(" ");
+  return candidates.some((c) => {
+    const desc = c.description.toLowerCase();
+    return tokens.every((t) => desc.includes(t));
+  });
+}
+
+/** Search FDC for an ingredient; return all candidates with complete macros. */
+export async function searchUsdaCandidates(
+  query: string,
+  apiKey: string,
+): Promise<UsdaMatch[]> {
+  const tokens = query.toLowerCase().split(/[^a-z]+/).filter(Boolean);
+  if (tokens.length === 0) return [];
+
+  const full = tokens.join(" ");
+  // English noun phrases put the head noun last, so the final two tokens are
+  // the ingredient itself with its modifiers stripped.
+  const headPhrase = tokens.length > 2 ? tokens.slice(-2).join(" ") : null;
+
+  const byId = new Map<number, UsdaMatch>();
+  const add = (ms: UsdaMatch[]) => ms.forEach((m) => byId.set(m.fdc_id, m));
+
+  const searchBoth = async (q: string) => {
+    const [lab, survey] = await Promise.all([
+      fetchCandidates(q, apiKey, LAB_DATATYPES),
+      fetchCandidates(q, apiKey, SURVEY_DATATYPES),
+    ]);
+    add(lab);
+    add(survey);
+  };
+
+  await searchBoth(full);
+
+  // USDA ranks loosely and can drop the head noun entirely: "low fat cottage
+  // cheese" returns cream/monterey/swiss and no cottage cheese at all. When
+  // that happens, search the head phrase on its own.
+  if (headPhrase && !covers([...byId.values()], headPhrase)) {
+    await searchBoth(headPhrase);
+  }
+
+  // Specialty products (palm sugar, stevia-sweetened chips, protein powders)
+  // often exist only as branded entries.
+  if (!covers([...byId.values()], full)) {
+    add(await fetchCandidates(full, apiKey, BRANDED_DATATYPES));
+  }
+
+  return [...byId.values()];
 }
 
 /**
