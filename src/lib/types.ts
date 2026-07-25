@@ -47,7 +47,12 @@ export type RecipeWithIngredients = Recipe & {
   recipe_ingredients: RecipeIngredient[];
 };
 
-export type MealSlot = "breakfast" | "lunch" | "dinner" | "snack";
+export type MealSlot =
+  | "breakfast"
+  | "lunch"
+  | "dinner"
+  | "dessert"
+  | "snack";
 
 export type PlannedMeal = {
   id: string;

@@ -7,7 +7,13 @@ import { addDays, dayLabel, fromISODate } from "@/lib/dates";
 import type { MealSlot } from "@/lib/types";
 import type { RecipeOption } from "@/lib/queries/planner";
 
-const SLOTS: MealSlot[] = ["breakfast", "lunch", "dinner", "snack"];
+const SLOTS: MealSlot[] = [
+  "breakfast",
+  "lunch",
+  "dinner",
+  "dessert",
+  "snack",
+];
 
 const inputClass =
   "rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-white/15";
@@ -169,6 +175,8 @@ export const SLOT_STYLES: Record<MealSlot, string> = {
   lunch: "bg-sky-50 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300",
   dinner:
     "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300",
+  dessert:
+    "bg-rose-50 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300",
   snack:
     "bg-violet-50 text-violet-800 dark:bg-violet-950/60 dark:text-violet-300",
 };
@@ -177,5 +185,6 @@ export const SLOT_ORDER: Record<MealSlot, number> = {
   breakfast: 0,
   lunch: 1,
   dinner: 2,
-  snack: 3,
+  dessert: 3,
+  snack: 4,
 };
