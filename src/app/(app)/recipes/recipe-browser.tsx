@@ -187,7 +187,7 @@ export function RecipeBrowser({
                       alt=""
                       width={600}
                       height={320}
-                      className="h-32 w-full object-cover"
+                      className="aspect-[3/2] w-full object-cover"
                       unoptimized
                     />
                   ) : null}

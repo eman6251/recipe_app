@@ -90,14 +90,30 @@ export function RecipeImage({
 
       {imageUrl ? (
         <div className="group/img relative overflow-hidden rounded-xl border border-black/10 dark:border-white/10">
-          <Image
-            src={imageUrl}
-            alt={title}
-            width={1200}
-            height={675}
-            className="h-56 w-full object-cover md:h-72"
-            unoptimized
-          />
+          {/*
+            A fixed aspect ratio (rather than a fixed height) keeps the framing
+            identical at every window width. Since these are arbitrary phone
+            photos, the image is contained rather than cropped so the whole
+            dish stays visible, with a blurred copy filling the leftover space
+            instead of empty bars.
+          */}
+          <div className="relative aspect-[3/2] w-full bg-black/5 dark:bg-black/30">
+            <Image
+              src={imageUrl}
+              alt=""
+              aria-hidden
+              fill
+              className="scale-110 object-cover opacity-40 blur-2xl"
+              unoptimized
+            />
+            <Image
+              src={imageUrl}
+              alt={title}
+              fill
+              className="object-contain"
+              unoptimized
+            />
+          </div>
           <div className="absolute right-2 top-2 flex gap-1.5 opacity-0 transition-opacity group-hover/img:opacity-100">
             <button
               onClick={() => inputRef.current?.click()}
