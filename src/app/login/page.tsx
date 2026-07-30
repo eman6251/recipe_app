@@ -12,7 +12,7 @@ export default async function LoginPage({
     <div className="flex min-h-dvh flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-2">
-          <ChefHat className="h-10 w-10 text-emerald-600" />
+          <ChefHat className="h-10 w-10 text-amber-600" />
           <h1 className="text-2xl font-semibold tracking-tight">Skillet</h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
             Sign in to your kitchen
@@ -25,7 +25,7 @@ export default async function LoginPage({
           </p>
         ) : null}
         {message ? (
-          <p className="mb-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
+          <p className="mb-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:bg-amber-950 dark:text-amber-400">
             {message}
           </p>
         ) : null}
@@ -38,7 +38,7 @@ export default async function LoginPage({
               type="email"
               required
               autoComplete="email"
-              className="rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-white/15"
+              className="rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-white/15"
             />
           </label>
           <label className="flex flex-col gap-1.5">
@@ -49,13 +49,13 @@ export default async function LoginPage({
               required
               minLength={8}
               autoComplete="current-password"
-              className="rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-white/15"
+              className="rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-white/15"
             />
           </label>
 
           <button
             formAction={login}
-            className="mt-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
+            className="mt-2 rounded-lg bg-amber-400 px-4 py-2.5 text-sm font-medium text-zinc-950 transition-colors hover:bg-amber-300"
           >
             Sign in
           </button>

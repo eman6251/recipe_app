@@ -52,7 +52,7 @@ function rowsFromInitial(initial?: RecipeWithIngredients): IngredientRow[] {
 }
 
 const inputClass =
-  "rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-white/15";
+  "rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-white/15";
 
 const cardClass =
   "flex flex-col gap-6 rounded-xl border border-black/10 bg-surface p-6 dark:border-white/10";
@@ -299,7 +299,7 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: Props) {
         <button
           type="button"
           onClick={() => setRows((rs) => [...rs, newRow()])}
-          className="mt-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-emerald-600 transition-colors hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950"
+          className="mt-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-amber-600 transition-colors hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950"
         >
           <Plus className="h-4 w-4" />
           Add ingredient
@@ -355,7 +355,7 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: Props) {
         <button
           type="submit"
           disabled={pending}
-          className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+          className="rounded-lg bg-amber-400 px-5 py-2.5 text-sm font-medium text-zinc-950 transition-colors hover:bg-amber-300 disabled:opacity-50"
         >
           {pending ? "Saving…" : submitLabel}
         </button>

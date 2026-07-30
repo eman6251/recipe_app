@@ -5,7 +5,7 @@ import { Sparkles } from "lucide-react";
 import { parseCaption, type ParsedRecipeDraft } from "./actions";
 
 const inputClass =
-  "rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-white/15";
+  "rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-white/15";
 
 export function ImportPanel({
   onParsed,
@@ -29,9 +29,9 @@ export function ImportPanel({
   };
 
   return (
-    <section className="mb-6 flex flex-col gap-3 rounded-xl border border-emerald-600/30 bg-surface p-6">
+    <section className="mb-6 flex flex-col gap-3 rounded-xl border border-amber-400/30 bg-surface p-6">
       <div className="flex items-center gap-2">
-        <Sparkles className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+        <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-400" />
         <h2 className="text-sm font-semibold">Import with AI</h2>
       </div>
       <p className="text-sm text-zinc-500 dark:text-zinc-400">
@@ -56,7 +56,7 @@ export function ImportPanel({
           type="button"
           onClick={handleParse}
           disabled={pending || caption.trim().length === 0}
-          className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-lg bg-amber-400 px-4 py-2 text-sm font-medium text-zinc-950 transition-colors hover:bg-amber-300 disabled:opacity-50"
         >
           <Sparkles className="h-4 w-4" />
           {pending ? "Parsing…" : "Parse with Claude"}

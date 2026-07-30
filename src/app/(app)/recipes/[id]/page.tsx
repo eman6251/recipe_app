@@ -94,7 +94,7 @@ export default async function RecipeDetailPage({
               href={recipe.source_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-emerald-600 hover:underline dark:text-emerald-400"
+              className="inline-flex items-center gap-1.5 text-amber-600 hover:underline dark:text-amber-400"
             >
               <ExternalLink className="h-4 w-4" />
               {recipe.source_note || "Source"}
@@ -109,7 +109,7 @@ export default async function RecipeDetailPage({
             {recipe.tags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400"
+                className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs text-amber-700 dark:bg-amber-950 dark:text-amber-400"
               >
                 {tag}
               </span>

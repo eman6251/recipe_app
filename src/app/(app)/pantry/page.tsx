@@ -5,7 +5,7 @@ import { addPantryCategory, addPantryItem } from "./actions";
 import { PantryList } from "./pantry-list";
 
 const inputClass =
-  "rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-white/15";
+  "rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-white/15";
 
 export default async function PantryPage() {
   const [items, categories] = await Promise.all([
@@ -82,7 +82,7 @@ export default async function PantryPage() {
           <div>
             <button
               type="submit"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-amber-400 px-4 py-2 text-sm font-medium text-zinc-950 transition-colors hover:bg-amber-300"
             >
               <Plus className="h-4 w-4" />
               Add staple

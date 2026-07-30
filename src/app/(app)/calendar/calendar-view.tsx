@@ -256,7 +256,7 @@ export function CalendarView({
                       <span
                         className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs ${
                           isToday
-                            ? "bg-emerald-600 font-semibold text-white"
+                            ? "bg-amber-400 font-semibold text-zinc-950"
                             : "text-zinc-500 dark:text-zinc-400"
                         }`}
                       >

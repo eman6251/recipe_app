@@ -11,7 +11,7 @@ import {
 } from "./actions";
 
 const numClass =
-  "w-20 rounded-md border border-black/15 bg-canvas px-2 py-1 text-sm tabular-nums outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-white/15";
+  "w-20 rounded-md border border-black/15 bg-canvas px-2 py-1 text-sm tabular-nums outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-white/15";
 
 /** Grams field that saves on blur (or Enter) — the field edited most often. */
 function GramsField({

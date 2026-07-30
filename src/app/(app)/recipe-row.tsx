@@ -10,7 +10,7 @@ function Card({ recipe }: { recipe: RecipeCard }) {
   return (
     <li className="w-40 shrink-0 sm:w-48">
       <Link href={`/recipes/${recipe.id}`} className="group block">
-        <div className="relative aspect-[3/2] w-full overflow-hidden rounded-xl border border-black/10 bg-canvas transition-colors group-hover:border-emerald-500/50 dark:border-white/10">
+        <div className="relative aspect-[3/2] w-full overflow-hidden rounded-xl border border-black/10 bg-canvas transition-colors group-hover:border-amber-500/50 dark:border-white/10">
           {recipe.image_url ? (
             <Image
               src={recipe.image_url}
@@ -68,7 +68,7 @@ export function RecipeRow({
           <select
             value={selectedAuthorId ?? ""}
             onChange={(e) => router.push(`/?author=${e.target.value}`)}
-            className="rounded-lg border border-black/15 bg-canvas px-2.5 py-1 text-sm outline-none focus:border-emerald-500 dark:border-white/15"
+            className="rounded-lg border border-black/15 bg-canvas px-2.5 py-1 text-sm outline-none focus:border-amber-500 dark:border-white/15"
           >
             {authors.map((a) => (
               <option key={a.id} value={a.id}>

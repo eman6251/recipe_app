@@ -39,7 +39,7 @@ export default async function Home({
         action={
           <Link
             href="/recipes/new"
-            className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
+            className="inline-flex items-center gap-2 rounded-lg bg-amber-400 px-4 py-2 text-sm font-medium text-zinc-950 transition-colors hover:bg-amber-300"
           >
             <Plus className="h-4 w-4" />
             Add recipe
@@ -53,9 +53,9 @@ export default async function Home({
           <Link
             key={href}
             href={href}
-            className="inline-flex items-center gap-2 rounded-lg border border-black/10 bg-surface px-3.5 py-2 text-sm font-medium transition-colors hover:border-emerald-500/50 dark:border-white/10"
+            className="inline-flex items-center gap-2 rounded-lg border border-black/10 bg-surface px-3.5 py-2 text-sm font-medium transition-colors hover:border-amber-500/50 dark:border-white/10"
           >
-            <Icon className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <Icon className="h-4 w-4 text-amber-600 dark:text-amber-400" />
             {label}
           </Link>
         ))}

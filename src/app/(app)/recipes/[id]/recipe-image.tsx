@@ -136,7 +136,7 @@ export function RecipeImage({
         <button
           onClick={() => inputRef.current?.click()}
           disabled={pending}
-          className="flex h-32 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-black/15 text-sm text-zinc-500 transition-colors hover:border-emerald-500/50 hover:text-emerald-600 disabled:opacity-50 dark:border-white/15 dark:text-zinc-400 dark:hover:text-emerald-400"
+          className="flex h-32 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-black/15 text-sm text-zinc-500 transition-colors hover:border-amber-500/50 hover:text-amber-600 disabled:opacity-50 dark:border-white/15 dark:text-zinc-400 dark:hover:text-amber-400"
         >
           <ImagePlus className="h-4 w-4" />
           {pending ? "Uploading…" : "Add a photo"}

@@ -4,19 +4,20 @@
  * Semantic surfaces:
  *  - canvas: the page background
  *  - surface: cards / raised sections / nav
- * Dark mode is a near-black green rather than pure black.
+ * Dark mode is seasoned cast iron: a warm charcoal grey, with the surface a
+ * shade lighter so cards read as raised. Accents are egg-yolk amber.
  */
 :root {
-  --canvas: #f6f8f6;
+  --canvas: #f4f4f3;
   --surface: #ffffff;
-  --foreground: #171717;
+  --foreground: #1c1b1a;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --canvas: #0d140f;
-    --surface: #152018;
-    --foreground: #e7eee9;
+    --canvas: #1a1a1c;
+    --surface: #252528;
+    --foreground: #eceae8;
   }
 }
 

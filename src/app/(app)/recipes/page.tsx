@@ -21,7 +21,7 @@ export default async function RecipesPage() {
         action={
           <Link
             href="/recipes/new"
-            className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
+            className="inline-flex items-center gap-2 rounded-lg bg-amber-400 px-4 py-2 text-sm font-medium text-zinc-950 transition-colors hover:bg-amber-300"
           >
             <Plus className="h-4 w-4" />
             Add recipe

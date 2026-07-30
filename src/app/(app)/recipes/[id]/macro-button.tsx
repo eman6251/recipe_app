@@ -42,10 +42,10 @@ export function MacroButton({
         </p>
       ) : null}
       {result && result.ok ? (
-        <div className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+        <div className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950 dark:text-amber-300">
           Matched {result.matched} of {result.total} ingredients via USDA.
           {result.skipped.length > 0 ? (
-            <ul className="mt-1 list-inside list-disc text-emerald-700/80 dark:text-emerald-400/80">
+            <ul className="mt-1 list-inside list-disc text-amber-700/80 dark:text-amber-400/80">
               {result.skipped.map((s) => (
                 <li key={s.item}>
                   {s.item} — {s.reason}
@@ -54,7 +54,7 @@ export function MacroButton({
             </ul>
           ) : null}
           <details className="mt-2">
-            <summary className="cursor-pointer text-emerald-700 dark:text-emerald-400">
+            <summary className="cursor-pointer text-amber-700 dark:text-amber-400">
               Per-ingredient breakdown
             </summary>
             <table className="mt-2 w-full text-xs">
@@ -62,7 +62,7 @@ export function MacroButton({
                 {result.lines.map((line, i) => (
                   <tr
                     key={i}
-                    className="border-t border-emerald-600/15 text-emerald-800/90 dark:text-emerald-300/90"
+                    className="border-t border-amber-400/15 text-amber-800/90 dark:text-amber-300/90"
                   >
                     <td className="py-1 pr-2 font-medium">{line.item}</td>
                     <td className="py-1 pr-2 whitespace-nowrap">

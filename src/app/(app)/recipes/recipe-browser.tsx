@@ -10,7 +10,7 @@ import type { PantryItem, RecipeWithIngredients } from "@/lib/types";
 const MEAL_TYPES = ["breakfast", "lunch", "dinner", "dessert"] as const;
 
 const inputClass =
-  "rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-white/15";
+  "rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-white/15";
 
 export function RecipeBrowser({
   recipes,
@@ -65,7 +65,7 @@ export function RecipeBrowser({
           onClick={() => setMealFilter(null)}
           className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
             mealFilter === null
-              ? "bg-emerald-600 text-white"
+              ? "bg-amber-400 text-zinc-950"
               : "bg-surface text-zinc-600 hover:bg-black/5 dark:text-zinc-400 dark:hover:bg-white/10 border border-black/10 dark:border-white/10"
           }`}
         >
@@ -77,7 +77,7 @@ export function RecipeBrowser({
             onClick={() => setMealFilter(mealFilter === meal ? null : meal)}
             className={`rounded-full px-3 py-1.5 text-sm font-medium capitalize transition-colors ${
               mealFilter === meal
-                ? "bg-emerald-600 text-white"
+                ? "bg-amber-400 text-zinc-950"
                 : "bg-surface text-zinc-600 hover:bg-black/5 dark:text-zinc-400 dark:hover:bg-white/10 border border-black/10 dark:border-white/10"
             }`}
           >
@@ -89,7 +89,7 @@ export function RecipeBrowser({
           onClick={() => setFridgeOpen((o) => !o)}
           className={`ml-auto inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
             fridgeOpen
-              ? "bg-emerald-600 text-white"
+              ? "bg-amber-400 text-zinc-950"
               : "bg-surface text-zinc-600 hover:bg-black/5 dark:text-zinc-400 dark:hover:bg-white/10 border border-black/10 dark:border-white/10"
           }`}
         >
@@ -100,13 +100,13 @@ export function RecipeBrowser({
 
       {/* Fridge search panel */}
       {fridgeOpen ? (
-        <section className="mb-6 flex flex-col gap-3 rounded-xl border border-emerald-600/30 bg-surface p-5">
+        <section className="mb-6 flex flex-col gap-3 rounded-xl border border-amber-400/30 bg-surface p-5">
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
             List what&apos;s in your fridge — only recipes you can make with
             these plus your{" "}
             <Link
               href="/pantry"
-              className="text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400"
+              className="text-amber-600 underline-offset-2 hover:underline dark:text-amber-400"
             >
               {pantry.length} pantry staples
             </Link>{" "}
@@ -127,7 +127,7 @@ export function RecipeBrowser({
             />
             <button
               onClick={addFridgeItems}
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
+              className="rounded-lg bg-amber-400 px-4 py-2 text-sm font-medium text-zinc-950 transition-colors hover:bg-amber-300"
             >
               Add
             </button>
@@ -137,7 +137,7 @@ export function RecipeBrowser({
               {fridgeItems.map((item) => (
                 <li
                   key={item}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 py-1 pl-3 pr-1.5 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 py-1 pl-3 pr-1.5 text-sm text-amber-800 dark:bg-amber-950 dark:text-amber-300"
                 >
                   {item}
                   <button
@@ -145,7 +145,7 @@ export function RecipeBrowser({
                       setFridgeItems((prev) => prev.filter((i) => i !== item))
                     }
                     aria-label={`Remove ${item}`}
-                    className="rounded-full p-0.5 text-emerald-600/60 hover:text-emerald-800 dark:text-emerald-400/60 dark:hover:text-emerald-200"
+                    className="rounded-full p-0.5 text-amber-600/60 hover:text-amber-800 dark:text-amber-400/60 dark:hover:text-amber-200"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -179,7 +179,7 @@ export function RecipeBrowser({
               <li key={recipe.id}>
                 <Link
                   href={`/recipes/${recipe.id}`}
-                  className="flex h-full flex-col overflow-hidden rounded-xl border border-black/10 bg-surface transition-colors hover:border-emerald-500/50 dark:border-white/10"
+                  className="flex h-full flex-col overflow-hidden rounded-xl border border-black/10 bg-surface transition-colors hover:border-amber-500/50 dark:border-white/10"
                 >
                   {recipe.image_url ? (
                     <Image
@@ -221,7 +221,7 @@ export function RecipeBrowser({
                       {recipe.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400"
+                          className="rounded-full bg-amber-50 px-2 py-0.5 text-xs text-amber-700 dark:bg-amber-950 dark:text-amber-400"
                         >
                           {tag}
                         </span>

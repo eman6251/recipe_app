@@ -164,7 +164,7 @@ export function WeekView({
       {/* Week macro summary */}
       <section className="mb-6 rounded-xl border border-black/10 bg-surface p-5 dark:border-white/10">
         <div className="flex items-center gap-2">
-          <Flame className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+          <Flame className="h-4 w-4 text-amber-600 dark:text-amber-400" />
           <h3 className="text-sm font-semibold">Week macros</h3>
         </div>
         <div className="mt-3 flex flex-col gap-1.5">
@@ -185,7 +185,7 @@ export function WeekView({
       {prepList.length > 0 ? (
         <section className="mb-6 rounded-xl border border-black/10 bg-surface p-5 dark:border-white/10">
           <div className="flex items-center gap-2">
-            <ChefHat className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <ChefHat className="h-4 w-4 text-amber-600 dark:text-amber-400" />
             <h3 className="text-sm font-semibold">Prep list</h3>
             <span className="text-xs text-zinc-500 dark:text-zinc-400">
               {prepList.filter((p) => p.cooked).length}/{prepList.length} cooked
@@ -213,8 +213,8 @@ export function WeekView({
                   }
                   className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
                     entry.cooked
-                      ? "border-emerald-600 bg-emerald-600 text-white"
-                      : "border-black/20 hover:border-emerald-500 dark:border-white/20"
+                      ? "border-amber-400 bg-amber-400 text-zinc-950"
+                      : "border-black/20 hover:border-amber-500 dark:border-white/20"
                   }`}
                 >
                   {entry.cooked ? <Check className="h-3.5 w-3.5" /> : null}
@@ -259,7 +259,7 @@ export function WeekView({
               key={iso}
               className={`rounded-xl border bg-surface p-4 dark:border-white/10 ${
                 isToday
-                  ? "border-emerald-500/50"
+                  ? "border-amber-500/50"
                   : "border-black/10"
               }`}
             >
@@ -267,7 +267,7 @@ export function WeekView({
                 <h3 className="font-medium">
                   {dayLabel(day)}
                   {isToday ? (
-                    <span className="ml-2 rounded-full bg-emerald-600 px-2 py-0.5 text-xs font-semibold text-white">
+                    <span className="ml-2 rounded-full bg-amber-400 px-2 py-0.5 text-xs font-semibold text-zinc-950">
                       today
                     </span>
                   ) : null}
@@ -299,7 +299,7 @@ export function WeekView({
                           title={meal.cooked ? "Cooked" : "Not cooked yet"}
                           className={`h-2 w-2 shrink-0 rounded-full ${
                             meal.cooked
-                              ? "bg-emerald-600"
+                              ? "bg-amber-400"
                               : "bg-black/15 dark:bg-white/20"
                           }`}
                         />

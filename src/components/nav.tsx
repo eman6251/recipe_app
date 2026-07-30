@@ -45,7 +45,7 @@ export function Nav() {
       {/* Desktop: left sidebar */}
       <nav className="hidden md:flex fixed inset-y-0 left-0 w-60 flex-col border-r border-black/10 bg-surface px-3 py-6 dark:border-white/10">
         <Link href="/" className="mb-8 flex items-center gap-2 px-3">
-          <ChefHat className="h-6 w-6 text-emerald-600" />
+          <ChefHat className="h-6 w-6 text-amber-600" />
           <span className="text-lg font-semibold tracking-tight">Skillet</span>
         </Link>
         <ul className="flex flex-col gap-1">
@@ -57,7 +57,7 @@ export function Nav() {
                   href={href}
                   className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                     active
-                      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400"
+                      ? "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400"
                       : "text-zinc-600 hover:bg-black/5 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-zinc-100"
                   }`}
                 >
@@ -72,7 +72,7 @@ export function Nav() {
           href="/profile"
           className={`mt-auto flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
             isActive(pathname, "/profile")
-              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400"
+              ? "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400"
               : "text-zinc-600 hover:bg-black/5 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-zinc-100"
           }`}
         >
@@ -100,7 +100,7 @@ export function Nav() {
               href={href}
               className={`flex flex-1 flex-col items-center gap-1 py-2 text-[11px] font-medium ${
                 active
-                  ? "text-emerald-600 dark:text-emerald-400"
+                  ? "text-amber-600 dark:text-amber-400"
                   : "text-zinc-500 dark:text-zinc-400"
               }`}
             >

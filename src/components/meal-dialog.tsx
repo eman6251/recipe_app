@@ -16,7 +16,7 @@ const SLOTS: MealSlot[] = [
 ];
 
 const inputClass =
-  "rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-white/15";
+  "rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-white/15";
 
 export function MealDialog({
   date,
@@ -141,7 +141,7 @@ export function MealDialog({
                 type="checkbox"
                 checked={spread}
                 onChange={(e) => setSpread(e.target.checked)}
-                className="mt-0.5 h-4 w-4 accent-emerald-600"
+                className="mt-0.5 h-4 w-4 accent-amber-600"
               />
               <span className="text-sm">
                 Spread across days
@@ -158,7 +158,7 @@ export function MealDialog({
             <button
               onClick={submit}
               disabled={pending || !recipeId}
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+              className="rounded-lg bg-amber-400 px-4 py-2 text-sm font-medium text-zinc-950 transition-colors hover:bg-amber-300 disabled:opacity-50"
             >
               {pending ? "Adding…" : willSpread ? `Add ${days} days` : "Add to plan"}
             </button>
@@ -169,12 +169,14 @@ export function MealDialog({
   );
 }
 
+// Categorical hues, deliberately not amber — amber is the app's accent, and
+// a slot badge wearing it would read as "selected" rather than "breakfast".
 export const SLOT_STYLES: Record<MealSlot, string> = {
   breakfast:
-    "bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300",
+    "bg-orange-50 text-orange-800 dark:bg-orange-950/60 dark:text-orange-300",
   lunch: "bg-sky-50 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300",
   dinner:
-    "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300",
+    "bg-teal-50 text-teal-800 dark:bg-teal-950/60 dark:text-teal-300",
   dessert:
     "bg-rose-50 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300",
   snack:

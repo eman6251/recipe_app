@@ -102,7 +102,7 @@ export function ShoppingList({
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
             <Link
               href={`/week?start=${weekStart}`}
-              className="text-emerald-600 underline-offset-2 hover:underline dark:text-emerald-400"
+              className="text-amber-600 underline-offset-2 hover:underline dark:text-amber-400"
             >
               Plan some meals
             </Link>{" "}
@@ -120,7 +120,7 @@ export function ShoppingList({
         <section className="rounded-xl border border-black/10 bg-surface p-5 dark:border-white/10">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <ShoppingCart className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              <ShoppingCart className="h-4 w-4 text-amber-600 dark:text-amber-400" />
               <h3 className="text-sm font-semibold">
                 {remaining} of {toBuy.length} to get
               </h3>
@@ -148,7 +148,7 @@ export function ShoppingList({
                     <span
                       className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
                         isChecked
-                          ? "border-emerald-600 bg-emerald-600"
+                          ? "border-amber-400 bg-amber-400"
                           : "border-black/20 dark:border-white/20"
                       }`}
                     >

@@ -96,7 +96,7 @@ export function RecipeSocial({
           }}
           className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
             favorite
-              ? "border-emerald-500/40 text-emerald-700 dark:text-emerald-400"
+              ? "border-amber-500/40 text-amber-700 dark:text-amber-400"
               : "border-black/10 text-zinc-600 hover:bg-black/5 dark:border-white/10 dark:text-zinc-400 dark:hover:bg-white/5"
           }`}
         >
@@ -117,7 +117,7 @@ export function RecipeSocial({
           }
           className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
             shared
-              ? "border-emerald-500/40 text-emerald-700 dark:text-emerald-400"
+              ? "border-amber-500/40 text-amber-700 dark:text-amber-400"
               : "border-black/10 text-zinc-600 hover:bg-black/5 dark:border-white/10 dark:text-zinc-400 dark:hover:bg-white/5"
           }`}
         >

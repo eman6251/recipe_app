@@ -4,7 +4,7 @@ import { updateProfile } from "./actions";
 import { AvatarUpload } from "./avatar-upload";
 
 const inputClass =
-  "rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-white/15";
+  "rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-white/15";
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -48,7 +48,7 @@ export default async function ProfilePage() {
               type="checkbox"
               name="share_new_recipes"
               defaultChecked={profile?.share_new_recipes ?? false}
-              className="mt-0.5 h-4 w-4 accent-emerald-600"
+              className="mt-0.5 h-4 w-4 accent-amber-600"
             />
             <span className="text-sm">
               Share new recipes automatically
@@ -64,7 +64,7 @@ export default async function ProfilePage() {
           <div>
             <button
               type="submit"
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
+              className="rounded-lg bg-amber-400 px-4 py-2 text-sm font-medium text-zinc-950 transition-colors hover:bg-amber-300"
             >
               Save profile
             </button>

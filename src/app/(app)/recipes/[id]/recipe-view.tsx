@@ -86,7 +86,7 @@ export function RecipeView({ recipe }: { recipe: RecipeWithIngredients }) {
                 onClick={() => setMultiplier(m)}
                 className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
                   multiplier === m
-                    ? "bg-emerald-600 text-white"
+                    ? "bg-amber-400 text-zinc-950"
                     : "text-zinc-600 hover:bg-black/5 dark:text-zinc-400 dark:hover:bg-white/5"
                 }`}
               >
@@ -112,7 +112,7 @@ export function RecipeView({ recipe }: { recipe: RecipeWithIngredients }) {
                   onClick={() => setUnitMode(m.id)}
                   className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
                     unitMode === m.id
-                      ? "bg-emerald-600 text-white"
+                      ? "bg-amber-400 text-zinc-950"
                       : "text-zinc-600 hover:bg-black/5 dark:text-zinc-400 dark:hover:bg-white/5"
                   }`}
                 >
@@ -170,7 +170,7 @@ export function RecipeView({ recipe }: { recipe: RecipeWithIngredients }) {
                   <span
                     className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors ${
                       done
-                        ? "bg-emerald-600 text-white"
+                        ? "bg-amber-400 text-zinc-950"
                         : "bg-black/5 text-zinc-600 group-hover:bg-black/10 dark:bg-white/10 dark:text-zinc-300"
                     }`}
                   >
