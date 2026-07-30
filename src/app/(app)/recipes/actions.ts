@@ -94,45 +94,25 @@ export async function updateRecipe(id: string, payload: RecipePayload) {
   redirect(`/recipes/${id}`);
 }
 
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
-const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
-
-export async function uploadRecipeImage(
+/**
+ * Record the storage URL of an already-uploaded photo.
+ *
+ * The file itself goes straight from the browser to Supabase Storage rather
+ * than through here: Server Action bodies are capped at 1MB (and ~4.5MB on
+ * Vercel), which almost any phone photo exceeds.
+ */
+export async function setRecipeImage(
   recipeId: string,
-  formData: FormData,
+  url: string,
 ): Promise<{ error?: string }> {
-  const file = formData.get("image");
-  if (!(file instanceof File) || file.size === 0) {
-    return { error: "Pick an image first." };
-  }
-  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-    return { error: "Use a JPEG, PNG, or WebP image." };
-  }
-  if (file.size > MAX_IMAGE_BYTES) {
-    return { error: "That image is over 8MB — try a smaller one." };
+  // Only accept URLs from our own storage bucket, so this can't be used to
+  // point a recipe at an arbitrary remote image.
+  const expectedPrefix = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/recipe-images/`;
+  if (!url.startsWith(expectedPrefix)) {
+    return { error: "Unexpected image location." };
   }
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Not signed in." };
-
-  const ext = file.type.split("/")[1].replace("jpeg", "jpg");
-  // Keyed by user id so storage policies can check ownership from the path.
-  const path = `${user.id}/${recipeId}.${ext}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("recipe-images")
-    .upload(path, file, { upsert: true, contentType: file.type });
-  if (uploadError) return { error: uploadError.message };
-
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from("recipe-images").getPublicUrl(path);
-
-  // Bust the CDN cache when a photo is replaced at the same path.
-  const url = `${publicUrl}?v=${Date.now()}`;
   const { error } = await supabase
     .from("recipes")
     .update({ image_url: url })

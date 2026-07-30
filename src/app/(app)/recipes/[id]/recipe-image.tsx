@@ -3,7 +3,11 @@
 import { useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import { ImagePlus, Trash2 } from "lucide-react";
-import { removeRecipeImage, uploadRecipeImage } from "../actions";
+import { createClient } from "@/lib/supabase/client";
+import { removeRecipeImage, setRecipeImage } from "../actions";
+
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 export function RecipeImage({
   recipeId,
@@ -20,10 +24,44 @@ export function RecipeImage({
 
   const upload = (file: File) => {
     setError(null);
-    const formData = new FormData();
-    formData.set("image", file);
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      setError("Use a JPEG, PNG, or WebP image.");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setError("That image is over 8MB — try a smaller one.");
+      return;
+    }
+
     startTransition(async () => {
-      const result = await uploadRecipeImage(recipeId, formData);
+      // Straight to storage: a Server Action body would cap out around 1MB.
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setError("Not signed in.");
+        return;
+      }
+
+      const ext = file.type.split("/")[1].replace("jpeg", "jpg");
+      // Keyed by user id so storage policies verify ownership from the path.
+      const path = `${user.id}/${recipeId}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("recipe-images")
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (uploadError) {
+        setError(uploadError.message);
+        return;
+      }
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("recipe-images").getPublicUrl(path);
+
+      // Replacing a photo reuses the path, so bust the CDN cache.
+      const result = await setRecipeImage(recipeId, `${publicUrl}?v=${Date.now()}`);
       if (result.error) setError(result.error);
     });
   };
