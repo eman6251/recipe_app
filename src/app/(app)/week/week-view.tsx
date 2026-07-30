@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import {
   Check,
+  ChefHat,
   ChevronLeft,
   ChevronRight,
   Flame,
@@ -18,7 +19,10 @@ import {
   macrosForServings,
   sumMacros as sum,
 } from "@/lib/macros";
-import { deletePlannedMeal, setMealCooked } from "../calendar/actions";
+import {
+  deletePlannedMeal,
+  setRecipeCookedForWeek,
+} from "../calendar/actions";
 import type {
   PlannedMealWithRecipe,
   RecipeOption,
@@ -92,6 +96,32 @@ export function WeekView({
         }
       : ZERO;
 
+  // One entry per distinct recipe in the week, with its total portions.
+  // A recipe counts as cooked once every planned portion is checked off.
+  const prepMap = new Map<
+    string,
+    { recipeId: string; title: string; portions: number; days: number; cooked: boolean }
+  >();
+  for (const meal of meals) {
+    const existing = prepMap.get(meal.recipe_id);
+    if (existing) {
+      existing.portions += meal.servings;
+      existing.days += 1;
+      existing.cooked = existing.cooked && meal.cooked;
+    } else {
+      prepMap.set(meal.recipe_id, {
+        recipeId: meal.recipe_id,
+        title: meal.recipes.title,
+        portions: meal.servings,
+        days: 1,
+        cooked: meal.cooked,
+      });
+    }
+  }
+  const prepList = [...prepMap.values()].sort((a, b) =>
+    a.title.localeCompare(b.title),
+  );
+
   const prevWeekStart = toISODate(addDays(start, -7));
   const nextWeekStart = toISODate(addDays(start, 7));
   const weekRangeLabel = `${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${addDays(start, 6).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
@@ -150,6 +180,67 @@ export function WeekView({
         ) : null}
       </section>
 
+      {/* Prep list: one row per distinct recipe, since a batch is cooked once
+          however many days it's eaten across. */}
+      {prepList.length > 0 ? (
+        <section className="mb-6 rounded-xl border border-black/10 bg-surface p-5 dark:border-white/10">
+          <div className="flex items-center gap-2">
+            <ChefHat className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <h3 className="text-sm font-semibold">Prep list</h3>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+              {prepList.filter((p) => p.cooked).length}/{prepList.length} cooked
+            </span>
+          </div>
+
+          <ul className="mt-3 flex flex-col gap-2">
+            {prepList.map((entry) => (
+              <li key={entry.recipeId} className="flex items-center gap-3">
+                <button
+                  onClick={() =>
+                    startTransition(() =>
+                      setRecipeCookedForWeek(
+                        entry.recipeId,
+                        weekStart,
+                        toISODate(addDays(start, 6)),
+                        !entry.cooked,
+                      ),
+                    )
+                  }
+                  aria-label={
+                    entry.cooked
+                      ? `Mark ${entry.title} not cooked`
+                      : `Mark ${entry.title} cooked`
+                  }
+                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
+                    entry.cooked
+                      ? "border-emerald-600 bg-emerald-600 text-white"
+                      : "border-black/20 hover:border-emerald-500 dark:border-white/20"
+                  }`}
+                >
+                  {entry.cooked ? <Check className="h-3.5 w-3.5" /> : null}
+                </button>
+
+                <Link
+                  href={`/recipes/${entry.recipeId}`}
+                  className={`truncate text-sm hover:underline ${
+                    entry.cooked
+                      ? "text-zinc-400 line-through dark:text-zinc-500"
+                      : ""
+                  }`}
+                >
+                  {entry.title}
+                </Link>
+
+                <span className="ml-auto whitespace-nowrap text-xs text-zinc-500 dark:text-zinc-400">
+                  {entry.portions} {entry.portions === 1 ? "portion" : "portions"}
+                  {entry.days > 1 ? ` · ${entry.days} days` : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       {/* Days */}
       <div className="flex flex-col gap-4">
         {days.map((day) => {
@@ -202,21 +293,16 @@ export function WeekView({
                         key={meal.id}
                         className="flex items-center gap-3 rounded-lg border border-black/5 px-3 py-2 dark:border-white/5"
                       >
-                        <button
-                          onClick={() =>
-                            startTransition(() =>
-                              setMealCooked(meal.id, !meal.cooked),
-                            )
-                          }
-                          aria-label={meal.cooked ? "Mark not cooked" : "Mark cooked"}
-                          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
+                        {/* Read-only here — cooking is checked off once per
+                            recipe in the prep list above. */}
+                        <span
+                          title={meal.cooked ? "Cooked" : "Not cooked yet"}
+                          className={`h-2 w-2 shrink-0 rounded-full ${
                             meal.cooked
-                              ? "border-emerald-600 bg-emerald-600 text-white"
-                              : "border-black/20 dark:border-white/20"
+                              ? "bg-emerald-600"
+                              : "bg-black/15 dark:bg-white/20"
                           }`}
-                        >
-                          {meal.cooked ? <Check className="h-3.5 w-3.5" /> : null}
-                        </button>
+                        />
 
                         <span
                           className={`rounded px-1.5 py-0.5 text-[11px] font-medium capitalize ${SLOT_STYLES[meal.meal_slot]}`}

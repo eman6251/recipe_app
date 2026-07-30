@@ -56,6 +56,29 @@ export async function deletePlannedMeal(id: string) {
   revalidatePlanner();
 }
 
+/**
+ * Mark a recipe cooked (or not) for a whole week at once.
+ *
+ * Meal prep cooks a batch once and eats it across several days, so "cooked"
+ * belongs to the recipe for that week rather than to each day's portion.
+ */
+export async function setRecipeCookedForWeek(
+  recipeId: string,
+  from: string,
+  to: string,
+  cooked: boolean,
+) {
+  const supabase = await createClient();
+  await supabase
+    .from("planned_meals")
+    .update({ cooked })
+    .eq("recipe_id", recipeId)
+    .gte("planned_on", from)
+    .lte("planned_on", to);
+
+  revalidatePlanner();
+}
+
 export async function setMealCooked(id: string, cooked: boolean) {
   const supabase = await createClient();
   await supabase.from("planned_meals").update({ cooked }).eq("id", id);
