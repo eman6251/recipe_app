@@ -2,6 +2,8 @@ import { PageHeader } from "@/components/page-header";
 import { addDays, fromISODate, startOfWeek, toISODate } from "@/lib/dates";
 import { listPantryItems } from "@/lib/queries/recipes";
 import { listPlannedMealsWithIngredients } from "@/lib/queries/planner";
+import { resolveIngredientAliases } from "@/lib/queries/aliases";
+import { canonicalKey } from "@/lib/fridge";
 import { buildShoppingList, flattenPlannedMeals } from "@/lib/shopping";
 import { ShoppingList } from "./shopping-list";
 
@@ -26,7 +28,12 @@ export default async function ShoppingPage({
   ]);
 
   const ingredients = flattenPlannedMeals(planned);
-  const { toBuy, covered } = buildShoppingList(ingredients, pantry);
+  // Merge names for the same product ("scallions" + "green onions") so their
+  // quantities add up into one line instead of listing separately.
+  const aliases = await resolveIngredientAliases(
+    ingredients.map((i) => canonicalKey(i.item)),
+  );
+  const { toBuy, covered } = buildShoppingList(ingredients, pantry, aliases);
 
   return (
     <>

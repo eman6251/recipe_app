@@ -187,6 +187,12 @@ export function ShoppingList({
                         {line.totalGrams != null
                           ? ` · ~${Math.round(line.totalGrams)}g`
                           : ""}
+                        {line.restock && line.remainingGrams != null
+                          ? ` · only ${Math.max(0, Math.round(line.remainingGrams))}g would be left`
+                          : ""}
+                        {line.mergedFrom
+                          ? ` · combines ${line.mergedFrom.join(" + ")}`
+                          : ""}
                       </span>
                     </span>
                   </button>

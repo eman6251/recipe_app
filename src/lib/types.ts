@@ -65,11 +65,23 @@ export type PlannedMeal = {
   created_at: string;
 };
 
+export type PantryCategory = {
+  id: string;
+  user_id: string;
+  name: string;
+  position: number;
+  created_at: string;
+};
+
 export type PantryItem = {
   id: string;
   user_id: string;
   name: string;
-  small_amount_g: number | null;
+  category_id: string | null;
+  /** Grams on hand. null = always stocked, never flag for restock. */
+  on_hand_g: number | null;
+  /** Restock once remaining would drop below this. null = 0. */
+  restock_below_g: number | null;
   created_at: string;
 };
 

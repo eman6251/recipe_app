@@ -1,7 +1,7 @@
 /**
  * Shopping list generation: aggregate ingredients across a week's planned
- * meals, scaled by servings, then subtract pantry staples — unless a staple
- * has a restock threshold and the week needs more than that amount.
+ * meals, scaled by servings, then subtract pantry staples — unless the week
+ * would run a staple down past its restock point.
  */
 
 import { canonicalKey, covers } from "@/lib/fridge";
@@ -25,8 +25,12 @@ export type ShoppingLine = {
   /** Human-readable quantity, e.g. "3 tbsp + 1 cup" or "2 clove". */
   quantityDisplay: string;
   recipeTitles: string[];
-  /** True when this is a pantry staple that needs restocking (over threshold). */
+  /** True when this is a pantry staple the week would run low on. */
   restock: boolean;
+  /** Grams left after the week, when the staple's stock is tracked. */
+  remainingGrams?: number | null;
+  /** Distinct source names merged into this line, when more than one. */
+  mergedFrom?: string[];
 };
 
 /** Expand each planned meal's recipe ingredients, scaled to planned servings. */
@@ -87,6 +91,8 @@ function formatFragments(
 export function buildShoppingList(
   lines: ShoppingIngredientInput[],
   pantry: PantryItem[],
+  /** key → canonical key, so synonyms land in one group (see queries/aliases). */
+  aliases?: Map<string, string>,
 ): { toBuy: ShoppingLine[]; covered: ShoppingLine[] } {
   type Group = {
     item: string;
@@ -94,22 +100,26 @@ export function buildShoppingList(
     gramsKnownForAll: boolean;
     fragments: { qty: number | null; unit: string | null }[];
     recipeTitles: Set<string>;
+    sourceNames: Set<string>;
   };
 
   const groups = new Map<string, Group>();
 
   for (const line of lines) {
-    const key = canonicalKey(line.item);
-    if (!key) continue;
+    const rawKey = canonicalKey(line.item);
+    if (!rawKey) continue;
+    const key = aliases?.get(rawKey) ?? rawKey;
 
     let g = groups.get(key);
     if (!g) {
       g = {
-        item: line.item,
+        // Prefer the canonical name when this group merges several spellings.
+        item: key === rawKey ? line.item : key,
         totalGrams: 0,
         gramsKnownForAll: true,
         fragments: [],
         recipeTitles: new Set(),
+        sourceNames: new Set(),
       };
       groups.set(key, g);
     }
@@ -119,6 +129,7 @@ export function buildShoppingList(
 
     g.fragments.push({ qty: line.quantity, unit: line.unit });
     g.recipeTitles.add(line.recipeTitle);
+    g.sourceNames.add(line.item.trim().toLowerCase());
   }
 
   const toBuy: ShoppingLine[] = [];
@@ -133,6 +144,7 @@ export function buildShoppingList(
       quantityDisplay: formatFragments(g.fragments),
       recipeTitles: [...g.recipeTitles],
       restock: false,
+      mergedFrom: g.sourceNames.size > 1 ? [...g.sourceNames] : undefined,
     };
 
     const match = pantry.find((p) => covers(p.name, g.item));
@@ -141,15 +153,23 @@ export function buildShoppingList(
       toBuy.push(line);
       continue;
     }
-    if (match.small_amount_g == null) {
-      covered.push(line); // always assumed stocked, no threshold to check
+    if (match.on_hand_g == null) {
+      covered.push(line); // stock untracked — assumed always available
       continue;
     }
-    if (totalGrams != null && totalGrams > match.small_amount_g) {
-      toBuy.push({ ...line, restock: true });
-    } else {
-      // Under threshold, or we can't estimate the amount — trust the pantry.
+    if (totalGrams == null) {
+      // Stock is tracked but this week's need can't be estimated, so there's
+      // nothing to compare against; trust the pantry rather than guess.
       covered.push(line);
+      continue;
+    }
+
+    const remainingGrams = match.on_hand_g - totalGrams;
+    const floor = match.restock_below_g ?? 0;
+    if (remainingGrams < floor) {
+      toBuy.push({ ...line, restock: true, remainingGrams });
+    } else {
+      covered.push({ ...line, remainingGrams });
     }
   }
 

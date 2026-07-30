@@ -1,54 +1,122 @@
-import { Plus } from "lucide-react";
+import { FolderPlus, Plus } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
-import { createClient } from "@/lib/supabase/server";
-import type { PantryItem } from "@/lib/types";
-import { addPantryItem } from "./actions";
+import { listPantryCategories, listPantryItems } from "@/lib/queries/recipes";
+import { addPantryCategory, addPantryItem } from "./actions";
 import { PantryList } from "./pantry-list";
 
-export default async function PantryPage() {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("pantry_items")
-    .select("*")
-    .order("name");
+const inputClass =
+  "rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-white/15";
 
-  if (error) throw new Error(`Failed to load pantry: ${error.message}`);
-  const items = (data ?? []) as PantryItem[];
+export default async function PantryPage() {
+  const [items, categories] = await Promise.all([
+    listPantryItems(),
+    listPantryCategories(),
+  ]);
 
   return (
     <>
       <PageHeader
         title="Pantry staples"
-        description="Things you always have on hand. “What can I make?” and the shopping list both assume these are stocked."
+        description="Things you keep on hand. Weigh what's left and the shopping list will flag a restock before a week runs you out."
       />
 
-      <section className="flex flex-col gap-5 rounded-xl border border-black/10 bg-surface p-6 dark:border-white/10">
-        <form action={addPantryItem} className="flex flex-wrap gap-2">
-          <input
-            name="name"
-            required
-            placeholder="olive oil"
-            autoComplete="off"
-            className="w-full max-w-xs rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-white/15"
-          />
-          <input
-            name="threshold"
-            type="number"
-            min="1"
-            placeholder="restock if a week needs >___g (optional)"
-            title="If a week's recipes need more than this many grams total, the shopping list will flag it as a restock instead of assuming you're stocked"
-            className="w-64 rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-white/15"
-          />
-          <button
-            type="submit"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
-          >
-            <Plus className="h-4 w-4" />
-            Add
-          </button>
+      {/* Add a staple */}
+      <section className="mb-6 rounded-xl border border-black/10 bg-surface p-6 dark:border-white/10">
+        <form action={addPantryItem} className="flex flex-col gap-3">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <label className="col-span-2 flex flex-col gap-1.5 md:col-span-1">
+              <span className="text-sm font-medium">Staple</span>
+              <input
+                name="name"
+                required
+                placeholder="cumin"
+                autoComplete="off"
+                className={inputClass}
+              />
+            </label>
+
+            <label className="col-span-2 flex flex-col gap-1.5 md:col-span-1">
+              <span className="text-sm font-medium">Category</span>
+              <select name="category_id" className={inputClass} defaultValue="">
+                <option value="">Uncategorized</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium">
+                On hand <span className="font-normal text-zinc-400">(g)</span>
+              </span>
+              <input
+                name="on_hand_g"
+                type="number"
+                min="0"
+                step="any"
+                placeholder="120"
+                title="How many grams you currently have. Leave blank to always assume stocked."
+                className={inputClass}
+              />
+            </label>
+
+            <label className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium">
+                Restock below{" "}
+                <span className="font-normal text-zinc-400">(g)</span>
+              </span>
+              <input
+                name="restock_below_g"
+                type="number"
+                min="0"
+                step="any"
+                placeholder="20"
+                title="Flag a restock once the remaining amount would drop below this. Blank means only flag when a week would use it all up."
+                className={inputClass}
+              />
+            </label>
+          </div>
+
+          <div>
+            <button
+              type="submit"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
+            >
+              <Plus className="h-4 w-4" />
+              Add staple
+            </button>
+          </div>
         </form>
 
-        <PantryList items={items} />
+        <form
+          action={addPantryCategory}
+          className="mt-4 flex flex-wrap items-end gap-2 border-t border-black/10 pt-4 dark:border-white/10"
+        >
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium">New category</span>
+            <input
+              name="category_name"
+              required
+              placeholder="Vinegars"
+              autoComplete="off"
+              className={`${inputClass} w-56`}
+            />
+          </label>
+          <button
+            type="submit"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-black/10 px-3 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-black/5 dark:border-white/10 dark:text-zinc-400 dark:hover:bg-white/5"
+          >
+            <FolderPlus className="h-4 w-4" />
+            Add category
+          </button>
+        </form>
+      </section>
+
+      {/* The staples themselves */}
+      <section className="rounded-xl border border-black/10 bg-surface p-6 dark:border-white/10">
+        <PantryList items={items} categories={categories} />
       </section>
     </>
   );
