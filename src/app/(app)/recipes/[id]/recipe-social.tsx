@@ -1,8 +1,13 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Globe, Lock, Star } from "lucide-react";
-import { rateRecipe, recordRecipeView, setRecipeShared } from "./social-actions";
+import { Bookmark, Globe, Lock, Star } from "lucide-react";
+import {
+  rateRecipe,
+  recordRecipeView,
+  setRecipeFavorite,
+  setRecipeShared,
+} from "./social-actions";
 
 export function RecipeSocial({
   recipeId,
@@ -11,6 +16,7 @@ export function RecipeSocial({
   myRating,
   avgRating,
   ratingCount,
+  isFavorite,
 }: {
   recipeId: string;
   isOwner: boolean;
@@ -18,10 +24,12 @@ export function RecipeSocial({
   myRating: number | null;
   avgRating: number | null;
   ratingCount: number;
+  isFavorite: boolean;
 }) {
   const [rating, setRating] = useState(myRating);
   const [hovered, setHovered] = useState<number | null>(null);
   const [shared, setShared] = useState(isPublic);
+  const [favorite, setFavorite] = useState(isFavorite);
   const [, startTransition] = useTransition();
 
   // Log the visit once per mount so "recently viewed" reflects real opens.
@@ -75,6 +83,29 @@ export function RecipeSocial({
             : "Not rated yet"}
         </span>
       </div>
+
+      {/* Someone else's recipe only joins your recipe box once you save it. */}
+      {!isOwner ? (
+        <button
+          onClick={() => {
+            const next = !favorite;
+            setFavorite(next);
+            startTransition(async () => {
+              await setRecipeFavorite(recipeId, next);
+            });
+          }}
+          className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
+            favorite
+              ? "border-emerald-500/40 text-emerald-700 dark:text-emerald-400"
+              : "border-black/10 text-zinc-600 hover:bg-black/5 dark:border-white/10 dark:text-zinc-400 dark:hover:bg-white/5"
+          }`}
+        >
+          <Bookmark
+            className={`h-3.5 w-3.5 ${favorite ? "fill-current" : ""}`}
+          />
+          {favorite ? "Saved" : "Save to my recipes"}
+        </button>
+      ) : null}
 
       {isOwner ? (
         <button

@@ -39,9 +39,19 @@ export async function createRecipe(payload: RecipePayload) {
   const supabase = await createClient();
   const { ingredients, ...recipe } = payload;
 
+  // Honour the profile's "share new recipes automatically" preference.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("share_new_recipes")
+    .eq("id", user?.id ?? "")
+    .maybeSingle();
+
   const { data: created, error } = await supabase
     .from("recipes")
-    .insert(recipe)
+    .insert({ ...recipe, is_public: profile?.share_new_recipes ?? false })
     .select("id")
     .single();
 

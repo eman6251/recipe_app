@@ -22,12 +22,14 @@ type RecipeRow = {
   macros_per_serving: Macros | null;
   user_id: string;
   is_public: boolean;
+  created_at: string;
 };
 
 /** Everything the home page needs, gathered in one pass. */
 export type HomeData = {
   recentlyViewed: RecipeCard[];
   recommended: RecipeCard[];
+  newlyShared: RecipeCard[];
   byAuthor: RecipeCard[];
   authors: Author[];
   selectedAuthorId: string | null;
@@ -35,7 +37,7 @@ export type HomeData = {
 };
 
 const CARD_FIELDS =
-  "id, title, image_url, tags, macros_per_serving, user_id, is_public";
+  "id, title, image_url, tags, macros_per_serving, user_id, is_public, created_at";
 
 export async function getHomeData(authorId?: string): Promise<HomeData> {
   const supabase = await createClient();
@@ -46,6 +48,7 @@ export async function getHomeData(authorId?: string): Promise<HomeData> {
   const empty: HomeData = {
     recentlyViewed: [],
     recommended: [],
+    newlyShared: [],
     byAuthor: [],
     authors: [],
     selectedAuthorId: null,
@@ -160,9 +163,17 @@ export async function getHomeData(authorId?: string): Promise<HomeData> {
     .map(toCard)
     .sort((a, b) => a.title.localeCompare(b.title));
 
+  // What people have been publishing lately.
+  const newlyShared = recipes
+    .filter((r) => r.is_public)
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+    .slice(0, 12)
+    .map(toCard);
+
   return {
     recentlyViewed,
     recommended,
+    newlyShared,
     byAuthor,
     authors,
     selectedAuthorId,

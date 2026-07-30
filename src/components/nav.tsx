@@ -10,6 +10,7 @@ import {
   ShoppingCart,
   Refrigerator,
   LogOut,
+  UserRound,
   type LucideIcon,
 } from "lucide-react";
 import { signout } from "@/app/login/actions";
@@ -67,7 +68,18 @@ export function Nav() {
             );
           })}
         </ul>
-        <form action={signout} className="mt-auto">
+        <Link
+          href="/profile"
+          className={`mt-auto flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+            isActive(pathname, "/profile")
+              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400"
+              : "text-zinc-600 hover:bg-black/5 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-zinc-100"
+          }`}
+        >
+          <UserRound className="h-5 w-5" />
+          Profile
+        </Link>
+        <form action={signout}>
           <button
             type="submit"
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-black/5 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-zinc-100"

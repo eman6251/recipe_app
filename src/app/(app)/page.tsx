@@ -28,6 +28,7 @@ export default async function Home({
   const hasAnything =
     data.recentlyViewed.length > 0 ||
     data.recommended.length > 0 ||
+    data.newlyShared.length > 0 ||
     data.byAuthor.length > 0;
 
   return (
@@ -80,6 +81,8 @@ export default async function Home({
             : undefined
         }
       />
+
+      <RecipeRow title="New recipes" recipes={data.newlyShared} />
 
       <RecipeRow
         title="Recipes by"

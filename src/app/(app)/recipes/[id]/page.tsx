@@ -21,9 +21,14 @@ export default async function RecipeDetailPage({
   const macros = recipe.macros_per_serving;
 
   const supabase = await createClient();
-  const [userId, { data: ratings }] = await Promise.all([
+  const [userId, { data: ratings }, { data: favorite }] = await Promise.all([
     currentUserId(),
     supabase.from("recipe_ratings").select("rating, user_id").eq("recipe_id", id),
+    supabase
+      .from("recipe_favorites")
+      .select("recipe_id")
+      .eq("recipe_id", id)
+      .maybeSingle(),
   ]);
 
   const isOwner = recipe.user_id === userId;
@@ -119,6 +124,7 @@ export default async function RecipeDetailPage({
           myRating={myRating}
           avgRating={avgRating}
           ratingCount={ratingCount}
+          isFavorite={!!favorite}
         />
 
         {isOwner ? <MacroButton recipeId={recipe.id} hasMacros={!!macros} /> : null}

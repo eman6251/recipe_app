@@ -16,6 +16,24 @@ export async function setRecipeShared(recipeId: string, isPublic: boolean) {
   return {};
 }
 
+export async function setRecipeFavorite(recipeId: string, favorite: boolean) {
+  const supabase = await createClient();
+
+  const { error } = favorite
+    ? await supabase.from("recipe_favorites").upsert({ recipe_id: recipeId })
+    : await supabase
+        .from("recipe_favorites")
+        .delete()
+        .eq("recipe_id", recipeId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/recipes/${recipeId}`);
+  revalidatePath("/recipes");
+  revalidatePath("/");
+  return {};
+}
+
 export async function rateRecipe(recipeId: string, rating: number) {
   if (rating < 1 || rating > 5) return { error: "Invalid rating." };
 

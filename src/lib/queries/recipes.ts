@@ -35,6 +35,10 @@ export async function listRecipes(): Promise<Recipe[]> {
   return data;
 }
 
+/**
+ * The user's recipe box: everything they wrote, plus shared recipes they
+ * saved. Other people's shared recipes stay out until favorited.
+ */
 export async function listRecipesWithIngredients(): Promise<
   RecipeWithIngredients[]
 > {
@@ -42,14 +46,29 @@ export async function listRecipesWithIngredients(): Promise<
   const userId = await currentUserId();
   if (!userId) return [];
 
-  const { data, error } = await supabase
-    .from("recipes")
-    .select("*, recipe_ingredients (*)")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false });
+  const [{ data: own, error }, { data: favorites }] = await Promise.all([
+    supabase
+      .from("recipes")
+      .select("*, recipe_ingredients (*)")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false }),
+    supabase.from("recipe_favorites").select("recipe_id"),
+  ]);
 
   if (error) throw new Error(`Failed to list recipes: ${error.message}`);
-  return data;
+
+  const savedIds = (favorites ?? [])
+    .map((f) => f.recipe_id)
+    .filter((id) => !own?.some((r) => r.id === id));
+  if (savedIds.length === 0) return own ?? [];
+
+  const { data: saved } = await supabase
+    .from("recipes")
+    .select("*, recipe_ingredients (*)")
+    .in("id", savedIds)
+    .order("created_at", { ascending: false });
+
+  return [...(own ?? []), ...(saved ?? [])];
 }
 
 export async function listPantryItems(): Promise<PantryItem[]> {
