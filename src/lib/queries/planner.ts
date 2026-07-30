@@ -73,9 +73,17 @@ export type RecipeOption = { id: string; title: string };
 
 export async function listRecipeOptions(): Promise<RecipeOption[]> {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  // Own recipes only — RLS also exposes other users' shared recipes, which
+  // don't belong in the meal-planner picker.
   const { data, error } = await supabase
     .from("recipes")
     .select("id, title")
+    .eq("user_id", user.id)
     .order("title");
 
   if (error) throw new Error(`Failed to load recipes: ${error.message}`);

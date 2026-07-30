@@ -5,45 +5,31 @@ import {
   UtensilsCrossed,
   ShoppingCart,
   Plus,
-  type LucideIcon,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { getHomeData } from "@/lib/queries/discover";
+import { RecipeRow } from "./recipe-row";
 
-type Tile = {
-  href: string;
-  label: string;
-  description: string;
-  icon: LucideIcon;
-};
-
-const TILES: Tile[] = [
-  {
-    href: "/recipes",
-    label: "Recipes",
-    description: "Browse and cook from your recipe box",
-    icon: BookOpen,
-  },
-  {
-    href: "/calendar",
-    label: "Calendar",
-    description: "Plan meals across the month",
-    icon: CalendarDays,
-  },
-  {
-    href: "/week",
-    label: "This Week",
-    description: "Meal prep plan + macro breakdown",
-    icon: UtensilsCrossed,
-  },
-  {
-    href: "/shopping",
-    label: "Shopping",
-    description: "Grocery list from your planned meals",
-    icon: ShoppingCart,
-  },
+const TILES = [
+  { href: "/recipes", label: "Recipes", icon: BookOpen },
+  { href: "/calendar", label: "Calendar", icon: CalendarDays },
+  { href: "/week", label: "This Week", icon: UtensilsCrossed },
+  { href: "/shopping", label: "Shopping", icon: ShoppingCart },
 ];
 
-export default function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ author?: string }>;
+}) {
+  const { author } = await searchParams;
+  const data = await getHomeData(author);
+
+  const hasAnything =
+    data.recentlyViewed.length > 0 ||
+    data.recommended.length > 0 ||
+    data.byAuthor.length > 0;
+
   return (
     <>
       <PageHeader
@@ -60,25 +46,48 @@ export default function Home() {
         }
       />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {TILES.map(({ href, label, description, icon: Icon }) => (
+      {/* Quick links */}
+      <nav className="mb-8 flex flex-wrap gap-2">
+        {TILES.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
             href={href}
-            className="group flex items-start gap-4 rounded-xl border border-black/10 bg-surface p-5 transition-colors hover:border-emerald-500/50 dark:border-white/10"
+            className="inline-flex items-center gap-2 rounded-lg border border-black/10 bg-surface px-3.5 py-2 text-sm font-medium transition-colors hover:border-emerald-500/50 dark:border-white/10"
           >
-            <span className="rounded-lg bg-emerald-50 p-2.5 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
-              <Icon className="h-5 w-5" />
-            </span>
-            <span>
-              <span className="block font-medium">{label}</span>
-              <span className="mt-0.5 block text-sm text-zinc-500 dark:text-zinc-400">
-                {description}
-              </span>
-            </span>
+            <Icon className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            {label}
           </Link>
         ))}
-      </div>
+      </nav>
+
+      {!hasAnything ? (
+        <div className="rounded-xl border border-dashed border-black/15 bg-surface/60 p-10 text-center dark:border-white/15">
+          <p className="font-medium">Nothing to show yet</p>
+          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+            Add a few recipes and they&apos;ll start showing up here.
+          </p>
+        </div>
+      ) : null}
+
+      <RecipeRow title="Recently viewed" recipes={data.recentlyViewed} />
+
+      <RecipeRow
+        title="Recommended for you"
+        recipes={data.recommended}
+        emptyHint={
+          data.cookedCount === 0
+            ? "Cook a few meals (check them off in This Week) or rate some recipes, and suggestions will show up here."
+            : undefined
+        }
+      />
+
+      <RecipeRow
+        title="Recipes by"
+        recipes={data.byAuthor}
+        authors={data.authors}
+        selectedAuthorId={data.selectedAuthorId}
+        emptyHint="No recipes from this cook yet."
+      />
     </>
   );
 }

@@ -25,6 +25,7 @@ function draftToInitial(draft: ParsedRecipeDraft): RecipeWithIngredients {
     tags: draft.tags,
     image_url: null,
     macros_per_serving: null,
+    is_public: false,
     created_at: "",
     updated_at: "",
     recipe_ingredients: draft.ingredients.map((ing, i) => ({

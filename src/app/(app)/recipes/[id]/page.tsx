@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Clock, ExternalLink, Flame, Pencil } from "lucide-react";
-import { getRecipe } from "@/lib/queries/recipes";
+import { currentUserId, getRecipe } from "@/lib/queries/recipes";
+import { createClient } from "@/lib/supabase/server";
+import { RecipeSocial } from "./recipe-social";
 import { RecipeView } from "./recipe-view";
 import { DeleteRecipeButton } from "./delete-button";
 import { MacroButton } from "./macro-button";
@@ -17,6 +19,19 @@ export default async function RecipeDetailPage({
   if (!recipe) notFound();
 
   const macros = recipe.macros_per_serving;
+
+  const supabase = await createClient();
+  const [userId, { data: ratings }] = await Promise.all([
+    currentUserId(),
+    supabase.from("recipe_ratings").select("rating, user_id").eq("recipe_id", id),
+  ]);
+
+  const isOwner = recipe.user_id === userId;
+  const ratingCount = ratings?.length ?? 0;
+  const avgRating = ratingCount
+    ? ratings!.reduce((s, r) => s + r.rating, 0) / ratingCount
+    : null;
+  const myRating = ratings?.find((r) => r.user_id === userId)?.rating ?? null;
 
   return (
     <article>
@@ -97,7 +112,16 @@ export default async function RecipeDetailPage({
           </div>
         ) : null}
 
-        <MacroButton recipeId={recipe.id} hasMacros={!!macros} />
+        <RecipeSocial
+          recipeId={recipe.id}
+          isOwner={isOwner}
+          isPublic={recipe.is_public}
+          myRating={myRating}
+          avgRating={avgRating}
+          ratingCount={ratingCount}
+        />
+
+        {isOwner ? <MacroButton recipeId={recipe.id} hasMacros={!!macros} /> : null}
       </header>
 
       <RecipeView recipe={recipe} />

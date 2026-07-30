@@ -24,6 +24,7 @@ export type Recipe = {
   tags: string[];
   image_url: string | null;
   macros_per_serving: Macros | null;
+  is_public: boolean;
   created_at: string;
   updated_at: string;
 };

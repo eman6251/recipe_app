@@ -7,11 +7,28 @@ import type {
   RecipeWithIngredients,
 } from "@/lib/types";
 
+/**
+ * The signed-in user's id. Recipe reads are filtered by this explicitly:
+ * RLS also permits reading other people's *shared* recipes, so "my recipes"
+ * views would otherwise fill up with everyone else's.
+ */
+export async function currentUserId(): Promise<string | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user?.id ?? null;
+}
+
 export async function listRecipes(): Promise<Recipe[]> {
   const supabase = await createClient();
+  const userId = await currentUserId();
+  if (!userId) return [];
+
   const { data, error } = await supabase
     .from("recipes")
     .select("*")
+    .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(`Failed to list recipes: ${error.message}`);
@@ -22,9 +39,13 @@ export async function listRecipesWithIngredients(): Promise<
   RecipeWithIngredients[]
 > {
   const supabase = await createClient();
+  const userId = await currentUserId();
+  if (!userId) return [];
+
   const { data, error } = await supabase
     .from("recipes")
     .select("*, recipe_ingredients (*)")
+    .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(`Failed to list recipes: ${error.message}`);
