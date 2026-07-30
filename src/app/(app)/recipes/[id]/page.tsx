@@ -5,6 +5,7 @@ import { getRecipe } from "@/lib/queries/recipes";
 import { RecipeView } from "./recipe-view";
 import { DeleteRecipeButton } from "./delete-button";
 import { MacroButton } from "./macro-button";
+import { RecipeImage } from "./recipe-image";
 
 export default async function RecipeDetailPage({
   params,
@@ -19,6 +20,12 @@ export default async function RecipeDetailPage({
 
   return (
     <article>
+      <RecipeImage
+        recipeId={recipe.id}
+        imageUrl={recipe.image_url}
+        title={recipe.title}
+      />
+
       <header className="mb-6 rounded-xl border border-black/10 bg-surface p-6 dark:border-white/10">
         <div className="flex items-start justify-between gap-4">
           <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">

@@ -1,0 +1,99 @@
+"use client";
+
+import { useRef, useState, useTransition } from "react";
+import Image from "next/image";
+import { ImagePlus, Trash2 } from "lucide-react";
+import { removeRecipeImage, uploadRecipeImage } from "../actions";
+
+export function RecipeImage({
+  recipeId,
+  imageUrl,
+  title,
+}: {
+  recipeId: string;
+  imageUrl: string | null;
+  title: string;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  const upload = (file: File) => {
+    setError(null);
+    const formData = new FormData();
+    formData.set("image", file);
+    startTransition(async () => {
+      const result = await uploadRecipeImage(recipeId, formData);
+      if (result.error) setError(result.error);
+    });
+  };
+
+  const remove = () => {
+    setError(null);
+    startTransition(async () => {
+      const result = await removeRecipeImage(recipeId);
+      if (result.error) setError(result.error);
+    });
+  };
+
+  return (
+    <div className="mb-6">
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) upload(file);
+          e.target.value = ""; // allow re-picking the same file
+        }}
+      />
+
+      {imageUrl ? (
+        <div className="group/img relative overflow-hidden rounded-xl border border-black/10 dark:border-white/10">
+          <Image
+            src={imageUrl}
+            alt={title}
+            width={1200}
+            height={675}
+            className="h-56 w-full object-cover md:h-72"
+            unoptimized
+          />
+          <div className="absolute right-2 top-2 flex gap-1.5 opacity-0 transition-opacity group-hover/img:opacity-100">
+            <button
+              onClick={() => inputRef.current?.click()}
+              disabled={pending}
+              className="rounded-lg bg-black/60 px-2.5 py-1.5 text-xs font-medium text-white backdrop-blur transition-colors hover:bg-black/80 disabled:opacity-50"
+            >
+              {pending ? "Working…" : "Replace"}
+            </button>
+            <button
+              onClick={remove}
+              disabled={pending}
+              aria-label="Remove photo"
+              className="rounded-lg bg-black/60 p-1.5 text-white backdrop-blur transition-colors hover:bg-red-600/80 disabled:opacity-50"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => inputRef.current?.click()}
+          disabled={pending}
+          className="flex h-32 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-black/15 text-sm text-zinc-500 transition-colors hover:border-emerald-500/50 hover:text-emerald-600 disabled:opacity-50 dark:border-white/15 dark:text-zinc-400 dark:hover:text-emerald-400"
+        >
+          <ImagePlus className="h-4 w-4" />
+          {pending ? "Uploading…" : "Add a photo"}
+        </button>
+      )}
+
+      {error ? (
+        <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-400">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}

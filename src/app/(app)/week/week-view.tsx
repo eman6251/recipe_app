@@ -13,6 +13,11 @@ import {
 } from "lucide-react";
 import { addDays, dayLabel, fromISODate, isSameDay, toISODate } from "@/lib/dates";
 import { MealDialog, SLOT_ORDER, SLOT_STYLES } from "@/components/meal-dialog";
+import {
+  ZERO_MACROS as ZERO,
+  macrosForServings,
+  sumMacros as sum,
+} from "@/lib/macros";
 import { deletePlannedMeal, setMealCooked } from "../calendar/actions";
 import type {
   PlannedMealWithRecipe,
@@ -20,26 +25,8 @@ import type {
 } from "@/lib/queries/planner";
 import type { Macros } from "@/lib/types";
 
-const ZERO: Macros = { kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0 };
-
 function mealMacros(meal: PlannedMealWithRecipe): Macros | null {
-  const per = meal.recipes.macros_per_serving;
-  if (!per) return null;
-  return {
-    kcal: per.kcal * meal.servings,
-    protein_g: per.protein_g * meal.servings,
-    carbs_g: per.carbs_g * meal.servings,
-    fat_g: per.fat_g * meal.servings,
-  };
-}
-
-function sum(a: Macros, b: Macros): Macros {
-  return {
-    kcal: a.kcal + b.kcal,
-    protein_g: a.protein_g + b.protein_g,
-    carbs_g: a.carbs_g + b.carbs_g,
-    fat_g: a.fat_g + b.fat_g,
-  };
+  return macrosForServings(meal.recipes.macros_per_serving, meal.servings);
 }
 
 function MacroStrip({ m, label }: { m: Macros; label?: string }) {

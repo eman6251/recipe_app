@@ -6,9 +6,46 @@ import type { RecipeWithIngredients } from "@/lib/types";
 
 const MULTIPLIERS = [0.5, 1, 1.5, 2, 3];
 
+const UNIT_MODES = [
+  { id: "original", label: "Original" },
+  { id: "grams", label: "Grams" },
+  { id: "ounces", label: "Ounces" },
+] as const;
+
+type UnitMode = (typeof UNIT_MODES)[number]["id"];
+
+const GRAMS_PER_OUNCE = 28.3495;
+
+/**
+ * Amount for one ingredient line at the current scale and unit mode.
+ *
+ * Weight modes lean on the per-ingredient gram estimates the importer and
+ * macro pass already produce, so there's no volume→weight conversion (and no
+ * per-food density table) to get wrong. Lines with no gram estimate fall back
+ * to their original measurement rather than showing nothing.
+ */
+function formatAmount(
+  ing: RecipeWithIngredients["recipe_ingredients"][number],
+  multiplier: number,
+  mode: UnitMode,
+): string {
+  if (mode !== "original" && ing.grams != null) {
+    const grams = ing.grams * multiplier;
+    if (mode === "grams") return `${Math.round(grams)} g`;
+    const oz = grams / GRAMS_PER_OUNCE;
+    return `${oz < 10 ? oz.toFixed(1) : Math.round(oz)} oz`;
+  }
+
+  if (ing.quantity == null) return "";
+  return `${formatQuantity(ing.quantity * multiplier)}${ing.unit ? ` ${ing.unit}` : ""}`;
+}
+
 export function RecipeView({ recipe }: { recipe: RecipeWithIngredients }) {
   const [multiplier, setMultiplier] = useState(1);
+  const [unitMode, setUnitMode] = useState<UnitMode>("original");
   const [checkedSteps, setCheckedSteps] = useState<Set<number>>(new Set());
+
+  const anyGrams = recipe.recipe_ingredients.some((i) => i.grams != null);
 
   const scaledServings = recipe.servings * multiplier;
 
@@ -63,6 +100,29 @@ export function RecipeView({ recipe }: { recipe: RecipeWithIngredients }) {
           {scaledServings === 1 ? "serving" : "servings"}
         </p>
 
+        {anyGrams ? (
+          <div className="mt-3 flex items-center gap-2">
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+              Measure in
+            </span>
+            <div className="flex items-center rounded-lg border border-black/10 p-0.5 dark:border-white/10">
+              {UNIT_MODES.map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => setUnitMode(m.id)}
+                  className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                    unitMode === m.id
+                      ? "bg-emerald-600 text-white"
+                      : "text-zinc-600 hover:bg-black/5 dark:text-zinc-400 dark:hover:bg-white/5"
+                  }`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
         <div className="mt-4 flex flex-col gap-5">
           {groups.map((group, gi) => (
             <div key={gi}>
@@ -75,10 +135,9 @@ export function RecipeView({ recipe }: { recipe: RecipeWithIngredients }) {
                 {group.items.map((ing) => (
                   <li key={ing.id} className="flex gap-2 text-[15px] leading-snug">
                     <span>
-                      {ing.quantity != null ? (
+                      {formatAmount(ing, multiplier, unitMode) ? (
                         <strong className="font-semibold">
-                          {formatQuantity(ing.quantity * multiplier)}
-                          {ing.unit ? ` ${ing.unit}` : ""}
+                          {formatAmount(ing, multiplier, unitMode)}
                         </strong>
                       ) : null}{" "}
                       {ing.item}

@@ -1,21 +1,109 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import {
   calendarGrid,
+  dayLabel,
+  fromISODate,
   isSameDay,
   monthLabel,
   toISODate,
   WEEKDAY_LABELS,
 } from "@/lib/dates";
+import { macrosForServings, sumMacros, ZERO_MACROS } from "@/lib/macros";
+import type { Macros } from "@/lib/types";
 import { MealDialog, SLOT_ORDER, SLOT_STYLES } from "@/components/meal-dialog";
 import { deletePlannedMeal } from "./actions";
 import type {
   PlannedMealWithRecipe,
   RecipeOption,
 } from "@/lib/queries/planner";
+
+const HOVER_DELAY_MS = 500;
+
+/** Day detail shown on hover: full meal names, slots, and the day's macros. */
+function DayPopover({
+  day,
+  dayMeals,
+  style,
+  onMouseEnter,
+  onMouseLeave,
+}: {
+  day: Date;
+  dayMeals: PlannedMealWithRecipe[];
+  style: React.CSSProperties;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
+}) {
+  let total: Macros = ZERO_MACROS;
+  let missing = 0;
+  for (const meal of dayMeals) {
+    const m = macrosForServings(meal.recipes.macros_per_serving, meal.servings);
+    if (m) total = sumMacros(total, m);
+    else missing++;
+  }
+
+  return (
+    <div
+      style={style}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      className="fixed z-50 w-64 rounded-xl border border-black/10 bg-surface p-3 shadow-xl dark:border-white/15"
+    >
+      <p className="mb-2 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+        {dayLabel(day)}
+      </p>
+
+      <ul className="flex flex-col gap-1.5">
+        {dayMeals.map((meal) => (
+          <li key={meal.id}>
+            <Link
+              href={`/recipes/${meal.recipe_id}`}
+              className="block rounded-lg px-2 py-1.5 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+            >
+              <span
+                className={`mb-0.5 inline-block rounded px-1.5 py-0.5 text-[10px] font-medium capitalize ${SLOT_STYLES[meal.meal_slot]}`}
+              >
+                {meal.meal_slot}
+              </span>
+              <span
+                className={`block text-sm leading-snug ${
+                  meal.cooked
+                    ? "text-zinc-400 line-through dark:text-zinc-500"
+                    : ""
+                }`}
+              >
+                {meal.recipes.title}
+                {meal.servings !== 1 ? (
+                  <span className="text-zinc-400"> ×{meal.servings}</span>
+                ) : null}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+
+      <div className="mt-2 border-t border-black/10 pt-2 dark:border-white/10">
+        <p className="text-xs">
+          <span className="font-semibold">{Math.round(total.kcal)} kcal</span>
+          <span className="text-zinc-500 dark:text-zinc-400">
+            {" · "}
+            {Math.round(total.protein_g)}p {Math.round(total.carbs_g)}c{" "}
+            {Math.round(total.fat_g)}f
+          </span>
+        </p>
+        {missing > 0 ? (
+          <p className="mt-0.5 text-[11px] text-amber-600 dark:text-amber-400">
+            {missing} {missing === 1 ? "meal has" : "meals have"} no macro data
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
 
 export function CalendarView({
   year,
@@ -29,7 +117,58 @@ export function CalendarView({
   recipes: RecipeOption[];
 }) {
   const [dialogDate, setDialogDate] = useState<string | null>(null);
+  const [hover, setHover] = useState<{
+    iso: string;
+    style: React.CSSProperties;
+  } | null>(null);
+  const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [, startTransition] = useTransition();
+
+  useEffect(() => {
+    // A fixed-position popover would drift away from its cell on scroll.
+    const close = () => setHover(null);
+    window.addEventListener("scroll", close, true);
+    return () => {
+      window.removeEventListener("scroll", close, true);
+      if (openTimer.current) clearTimeout(openTimer.current);
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+    };
+  }, []);
+
+  const POPOVER_W = 256;
+  const POPOVER_MAX_H = 320;
+
+  const openAfterDelay = (iso: string, cell: HTMLElement) => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    if (openTimer.current) clearTimeout(openTimer.current);
+    openTimer.current = setTimeout(() => {
+      const r = cell.getBoundingClientRect();
+      // Flip above / shift inward so the popover always lands on-screen.
+      const openUp = r.bottom + POPOVER_MAX_H > window.innerHeight;
+      const left = Math.max(
+        8,
+        Math.min(r.left, window.innerWidth - POPOVER_W - 8),
+      );
+      setHover({
+        iso,
+        style: openUp
+          ? { left, bottom: window.innerHeight - r.top + 4 }
+          : { left, top: r.bottom + 4 },
+      });
+    }, HOVER_DELAY_MS);
+  };
+
+  /** Small grace period so the cursor can travel into the popover. */
+  const scheduleClose = () => {
+    if (openTimer.current) clearTimeout(openTimer.current);
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setHover(null), 150);
+  };
+
+  const cancelClose = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+  };
 
   const weeks = calendarGrid(year, monthIdx);
   const today = new Date();
@@ -104,7 +243,12 @@ export function CalendarView({
                 return (
                   <div
                     key={iso}
-                    className={`group min-h-24 border-r border-black/5 p-1.5 last:border-r-0 dark:border-white/5 ${
+                    onMouseEnter={(e) => {
+                      if (dayMeals.length > 0)
+                        openAfterDelay(iso, e.currentTarget);
+                    }}
+                    onMouseLeave={scheduleClose}
+                    className={`group relative min-h-24 border-r border-black/5 p-1.5 last:border-r-0 dark:border-white/5 ${
                       inMonth ? "" : "opacity-40"
                     }`}
                   >
@@ -146,6 +290,7 @@ export function CalendarView({
                         </li>
                       ))}
                     </ul>
+
                   </div>
                 );
               })}
@@ -153,6 +298,20 @@ export function CalendarView({
           ))}
         </div>
       </div>
+
+      {/* Portalled so the grid's horizontal scroll container can't clip it. */}
+      {hover && typeof document !== "undefined"
+        ? createPortal(
+            <DayPopover
+              day={fromISODate(hover.iso)}
+              dayMeals={byDate.get(hover.iso) ?? []}
+              style={hover.style}
+              onMouseEnter={cancelClose}
+              onMouseLeave={scheduleClose}
+            />,
+            document.body,
+          )
+        : null}
 
       {dialogDate ? (
         <MealDialog

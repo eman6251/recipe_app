@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Clock, Flame, Refrigerator, X } from "lucide-react";
 import { matchRecipe } from "@/lib/fridge";
 import type { PantryItem, RecipeWithIngredients } from "@/lib/types";
@@ -178,8 +179,19 @@ export function RecipeBrowser({
               <li key={recipe.id}>
                 <Link
                   href={`/recipes/${recipe.id}`}
-                  className="flex h-full flex-col rounded-xl border border-black/10 bg-surface p-5 transition-colors hover:border-emerald-500/50 dark:border-white/10"
+                  className="flex h-full flex-col overflow-hidden rounded-xl border border-black/10 bg-surface transition-colors hover:border-emerald-500/50 dark:border-white/10"
                 >
+                  {recipe.image_url ? (
+                    <Image
+                      src={recipe.image_url}
+                      alt=""
+                      width={600}
+                      height={320}
+                      className="h-32 w-full object-cover"
+                      unoptimized
+                    />
+                  ) : null}
+                  <div className="flex flex-1 flex-col p-5">
                   <h2 className="font-medium leading-snug">{recipe.title}</h2>
                   {recipe.description ? (
                     <p className="mt-1 line-clamp-2 text-sm text-zinc-500 dark:text-zinc-400">
@@ -216,6 +228,7 @@ export function RecipeBrowser({
                       ))}
                     </div>
                   ) : null}
+                  </div>
                 </Link>
               </li>
             );

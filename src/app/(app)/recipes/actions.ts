@@ -94,6 +94,81 @@ export async function updateRecipe(id: string, payload: RecipePayload) {
   redirect(`/recipes/${id}`);
 }
 
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+export async function uploadRecipeImage(
+  recipeId: string,
+  formData: FormData,
+): Promise<{ error?: string }> {
+  const file = formData.get("image");
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Pick an image first." };
+  }
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    return { error: "Use a JPEG, PNG, or WebP image." };
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    return { error: "That image is over 8MB — try a smaller one." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not signed in." };
+
+  const ext = file.type.split("/")[1].replace("jpeg", "jpg");
+  // Keyed by user id so storage policies can check ownership from the path.
+  const path = `${user.id}/${recipeId}.${ext}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("recipe-images")
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (uploadError) return { error: uploadError.message };
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from("recipe-images").getPublicUrl(path);
+
+  // Bust the CDN cache when a photo is replaced at the same path.
+  const url = `${publicUrl}?v=${Date.now()}`;
+  const { error } = await supabase
+    .from("recipes")
+    .update({ image_url: url })
+    .eq("id", recipeId);
+  if (error) return { error: error.message };
+
+  revalidatePath(`/recipes/${recipeId}`);
+  revalidatePath("/recipes");
+  return {};
+}
+
+export async function removeRecipeImage(
+  recipeId: string,
+): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not signed in." };
+
+  // Extension isn't tracked on the recipe, so clear all candidates.
+  await supabase.storage
+    .from("recipe-images")
+    .remove(["jpg", "png", "webp"].map((e) => `${user.id}/${recipeId}.${e}`));
+
+  const { error } = await supabase
+    .from("recipes")
+    .update({ image_url: null })
+    .eq("id", recipeId);
+  if (error) return { error: error.message };
+
+  revalidatePath(`/recipes/${recipeId}`);
+  revalidatePath("/recipes");
+  return {};
+}
+
 export async function deleteRecipe(id: string) {
   const supabase = await createClient();
   const { error } = await supabase.from("recipes").delete().eq("id", id);
