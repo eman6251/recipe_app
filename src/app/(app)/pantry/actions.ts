@@ -30,7 +30,6 @@ export async function addPantryItem(formData: FormData) {
       name,
       category_id: categoryRaw || null,
       on_hand_g: parseGrams(formData.get("on_hand_g")),
-      restock_below_g: parseGrams(formData.get("restock_below_g")),
     },
     { onConflict: "user_id,name" },
   );
@@ -42,7 +41,6 @@ export async function updatePantryItem(
   id: string,
   fields: {
     on_hand_g?: number | null;
-    restock_below_g?: number | null;
     category_id?: string | null;
   },
 ) {

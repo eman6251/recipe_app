@@ -187,13 +187,15 @@ export function ShoppingList({
                         {line.totalGrams != null
                           ? ` · ~${Math.round(line.totalGrams)}g`
                           : ""}
-                        {line.restock && line.remainingGrams != null
-                          ? ` · only ${Math.max(0, Math.round(line.remainingGrams))}g would be left`
-                          : ""}
                         {line.mergedFrom
                           ? ` · combines ${line.mergedFrom.join(" + ")}`
                           : ""}
                       </span>
+                      {line.restockNote ? (
+                        <span className="mt-0.5 block text-xs text-amber-600 dark:text-amber-400">
+                          {line.restockNote}
+                        </span>
+                      ) : null}
                     </span>
                   </button>
                 </li>

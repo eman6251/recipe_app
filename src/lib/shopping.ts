@@ -5,6 +5,7 @@
  */
 
 import { canonicalKey, covers } from "@/lib/fridge";
+import { packagingTare } from "@/lib/pantry";
 import { formatQuantity } from "@/lib/quantity";
 import type { PantryItem } from "@/lib/types";
 import type { PlannedMealWithFullRecipe } from "@/lib/queries/planner";
@@ -29,6 +30,8 @@ export type ShoppingLine = {
   restock: boolean;
   /** Grams left after the week, when the staple's stock is tracked. */
   remainingGrams?: number | null;
+  /** Why a pantry staple ended up on the buy list. */
+  restockNote?: string;
   /** Distinct source names merged into this line, when more than one. */
   mergedFrom?: string[];
 };
@@ -164,10 +167,19 @@ export function buildShoppingList(
       continue;
     }
 
-    const remainingGrams = match.on_hand_g - totalGrams;
-    const floor = match.restock_below_g ?? 0;
-    if (remainingGrams < floor) {
-      toBuy.push({ ...line, restock: true, remainingGrams });
+    // The weighed figure includes the jar or bag, so discount it before
+    // deciding whether the week runs this staple out.
+    const tare = packagingTare(match.category_name ?? null);
+    const usable = Math.max(0, match.on_hand_g - tare);
+    const remainingGrams = usable - totalGrams;
+
+    if (remainingGrams <= 0) {
+      toBuy.push({
+        ...line,
+        restock: true,
+        remainingGrams,
+        restockNote: `Pantry staple — about ${Math.round(usable)}g usable (${Math.round(match.on_hand_g)}g weighed, less ~${tare}g packaging) and this week needs ${Math.round(totalGrams)}g.`,
+      });
     } else {
       covered.push({ ...line, remainingGrams });
     }

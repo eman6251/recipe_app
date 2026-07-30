@@ -21,7 +21,7 @@ function GramsField({
   label,
 }: {
   itemId: string;
-  field: "on_hand_g" | "restock_below_g";
+  field: "on_hand_g";
   value: number | null;
   label: string;
 }) {
@@ -145,17 +145,6 @@ export function PantryList({
                     g
                   </label>
 
-                  <label className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
-                    <span className="hidden sm:inline">restock below</span>
-                    <span className="sm:hidden">min</span>
-                    <GramsField
-                      itemId={item.id}
-                      field="restock_below_g"
-                      value={item.restock_below_g}
-                      label={`Restock ${item.name} when below this many grams`}
-                    />
-                    g
-                  </label>
 
                   <button
                     onClick={() =>

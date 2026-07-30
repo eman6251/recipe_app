@@ -75,11 +75,18 @@ export async function listPantryItems(): Promise<PantryItem[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("pantry_items")
-    .select("*")
+    .select("*, pantry_categories (name)")
     .order("name");
 
   if (error) throw new Error(`Failed to load pantry: ${error.message}`);
-  return data;
+
+  // Flatten the joined category so callers can pick a packaging allowance.
+  return (data ?? []).map((row) => {
+    const { pantry_categories, ...item } = row as PantryItem & {
+      pantry_categories: { name: string } | null;
+    };
+    return { ...item, category_name: pantry_categories?.name ?? null };
+  });
 }
 
 /**

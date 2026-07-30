@@ -23,7 +23,7 @@ export default async function PantryPage() {
       {/* Add a staple */}
       <section className="mb-6 rounded-xl border border-black/10 bg-surface p-6 dark:border-white/10">
         <form action={addPantryItem} className="flex flex-col gap-3">
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
             <label className="col-span-2 flex flex-col gap-1.5 md:col-span-1">
               <span className="text-sm font-medium">Staple</span>
               <input
@@ -49,7 +49,7 @@ export default async function PantryPage() {
 
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-medium">
-                On hand <span className="font-normal text-zinc-400">(g)</span>
+                On hand <span className="font-normal text-zinc-400">(g, with packaging)</span>
               </span>
               <input
                 name="on_hand_g"
@@ -57,26 +57,11 @@ export default async function PantryPage() {
                 min="0"
                 step="any"
                 placeholder="120"
-                title="How many grams you currently have. Leave blank to always assume stocked."
+                title="Weigh it in its jar or bag — a typical container weight is subtracted automatically. Leave blank to always assume stocked."
                 className={inputClass}
               />
             </label>
 
-            <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium">
-                Restock below{" "}
-                <span className="font-normal text-zinc-400">(g)</span>
-              </span>
-              <input
-                name="restock_below_g"
-                type="number"
-                min="0"
-                step="any"
-                placeholder="20"
-                title="Flag a restock once the remaining amount would drop below this. Blank means only flag when a week would use it all up."
-                className={inputClass}
-              />
-            </label>
           </div>
 
           <div>
