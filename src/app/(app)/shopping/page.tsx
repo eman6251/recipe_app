@@ -40,6 +40,17 @@ export default async function ShoppingPage({
       <PageHeader
         title="Shopping List"
         description="Generated from your planned meals, minus pantry staples."
+        info={
+          <>
+            Built from every meal planned for the week, scaled to the portions
+            you set, with quantities added together. Names for the same product
+            are merged, so &ldquo;scallions&rdquo; from one recipe and
+            &ldquo;green onions&rdquo; from another become one line. Anything
+            in your <strong>pantry</strong> is left off unless the week would
+            run you out. Check items off as you shop — ticks are remembered per
+            week on this device.
+          </>
+        }
       />
       <ShoppingList
         weekStart={from}

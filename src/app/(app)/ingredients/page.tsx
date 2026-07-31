@@ -11,6 +11,16 @@ export default async function IngredientsPage() {
       <PageHeader
         title="Ingredients"
         description="Browse by what a recipe is actually built around."
+        info={
+          <>
+            These list recipes an ingredient is central to, not every recipe
+            that merely contains it — a chili with a spoon of bouillon
+            won&apos;t show up under Chicken. A recipe qualifies when the
+            ingredient is named in its title, or is one of the heaviest
+            ingredients by weight, so results improve as recipes get gram
+            estimates from the importer or the macro calculation.
+          </>
+        }
       />
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">

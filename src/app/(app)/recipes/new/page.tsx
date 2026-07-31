@@ -54,6 +54,17 @@ export default function NewRecipePage() {
       <PageHeader
         title="Add a recipe"
         description="Paste a caption to auto-fill, or enter it manually."
+        info={
+          <>
+            Paste the caption from a TikTok or Instagram recipe and Claude
+            fills in the form below — ingredients split into quantity, unit and
+            item, steps, tags, and an estimated weight in grams for each
+            ingredient. Those gram estimates power the macro calculation and
+            the grams/ounces toggle later, so they&apos;re worth a glance.
+            Nothing saves until you review it and hit save, and the manual form
+            works fine on its own.
+          </>
+        }
       />
       <ImportPanel
         onParsed={(parsed) => {

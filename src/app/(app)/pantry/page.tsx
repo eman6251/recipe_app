@@ -18,6 +18,18 @@ export default async function PantryPage() {
       <PageHeader
         title="Pantry staples"
         description="Things you keep on hand. Weigh what's left and the shopping list will flag a restock before a week runs you out."
+        info={
+          <>
+            Staples listed here are assumed stocked, so they stay off your
+            shopping list. Enter grams to change that:{" "}
+            <strong>weigh the jar or bag as-is</strong> — no decanting — and a
+            typical container weight for the category is subtracted
+            automatically, since packaging can be heavier than what&apos;s inside
+            it. When a week&apos;s recipes would use up what&apos;s left, the staple
+            joins your shopping list with a note showing the arithmetic. Leave
+            grams blank and it&apos;s treated as always available.
+          </>
+        }
       />
 
       {/* Add a staple */}

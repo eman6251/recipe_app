@@ -22,6 +22,16 @@ export default async function Home({
       <PageHeader
         title="Welcome back"
         description="Your kitchen command center."
+        info={
+          <>
+            <strong>Recommended</strong> is built from what you&apos;ve cooked
+            and rated — recipes you check off in This Week and anything you
+            rate 4 stars or more shape which tags it favours, and other
+            people&apos;s ratings break the tie. Recipes you&apos;ve already
+            cooked or rated are left out. <strong>New recipes</strong> shows
+            what other cooks have shared recently.
+          </>
+        }
       />
 
 

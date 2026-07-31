@@ -1,10 +1,19 @@
+import { InfoTip } from "@/components/info-tip";
+
 type PageHeaderProps = {
   title: string;
   description?: string;
+  /** Explains how the page works; shown behind an (i) after the description. */
+  info?: React.ReactNode;
   action?: React.ReactNode;
 };
 
-export function PageHeader({ title, description, action }: PageHeaderProps) {
+export function PageHeader({
+  title,
+  description,
+  info,
+  action,
+}: PageHeaderProps) {
   return (
     <div className="mb-8 flex items-start justify-between gap-4">
       <div>
@@ -14,6 +23,7 @@ export function PageHeader({ title, description, action }: PageHeaderProps) {
         {description ? (
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
             {description}
+            {info ? <InfoTip>{info}</InfoTip> : null}
           </p>
         ) : null}
       </div>

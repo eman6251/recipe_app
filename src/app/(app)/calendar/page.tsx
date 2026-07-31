@@ -34,6 +34,17 @@ export default async function CalendarPage({
       <PageHeader
         title="Calendar"
         description="Plan meals across the month — hover a day to add."
+        info={
+          <>
+            Hover a day and hit <strong>+</strong> to plan a meal. Portions
+            spread across consecutive days by default, so setting a dinner to 5
+            portions on Sunday fills Sunday through Thursday — one portion a
+            day, the way a batch actually gets eaten. Uncheck &ldquo;spread
+            across days&rdquo; to stack them all on one date instead. Hover any
+            day with meals to see the full names, that day&apos;s macros, and links
+            to each recipe.
+          </>
+        }
       />
       <CalendarView
         year={year}

@@ -28,6 +28,17 @@ export default async function WeekPage({
       <PageHeader
         title="This Week"
         description="Your meal-prep plan and macro breakdown."
+        info={
+          <>
+            The <strong>prep list</strong> at the top has one row per recipe,
+            however many days it&apos;s spread across — you cook a batch once, so
+            you check it off once. Macros come from each recipe&apos;s computed
+            per-serving values times the portions planned; the daily average
+            divides by days that actually have meals, so a half-planned week
+            isn&apos;t reported as starvation. Recipes without computed macros are
+            called out rather than silently counted as zero.
+          </>
+        }
       />
       <WeekView weekStart={from} meals={meals} recipes={recipes} />
     </>

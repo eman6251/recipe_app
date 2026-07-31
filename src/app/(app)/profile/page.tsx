@@ -23,6 +23,15 @@ export default async function ProfilePage() {
       <PageHeader
         title="Profile"
         description="How you show up on recipes you share."
+        info={
+          <>
+            Your display name and photo appear as the author on any recipe you
+            share. <strong>Share new recipes automatically</strong> only
+            affects recipes added after you turn it on — it never publishes
+            anything you&apos;ve already written. Individual recipes can always be
+            shared or made private from their own page.
+          </>
+        }
       />
 
       <section className="flex max-w-xl flex-col gap-6 rounded-xl border border-black/10 bg-surface p-6 dark:border-white/10">
