@@ -1,20 +1,7 @@
-import Link from "next/link";
-import {
-  BookOpen,
-  CalendarDays,
-  UtensilsCrossed,
-  ShoppingCart,
-} from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { getHomeData } from "@/lib/queries/discover";
 import { RecipeRow } from "./recipe-row";
 
-const TILES = [
-  { href: "/recipes", label: "Recipes", icon: BookOpen },
-  { href: "/calendar", label: "Calendar", icon: CalendarDays },
-  { href: "/week", label: "This Week", icon: UtensilsCrossed },
-  { href: "/shopping", label: "Shopping", icon: ShoppingCart },
-];
 
 export default async function Home({
   searchParams,
@@ -37,19 +24,6 @@ export default async function Home({
         description="Your kitchen command center."
       />
 
-      {/* Quick links */}
-      <nav className="mb-8 flex flex-wrap gap-2">
-        {TILES.map(({ href, label, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            className="inline-flex items-center gap-2 rounded-lg border border-black/10 bg-surface px-3.5 py-2 text-sm font-medium transition-colors hover:border-amber-500/50 dark:border-white/10"
-          >
-            <Icon className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-            {label}
-          </Link>
-        ))}
-      </nav>
 
       {!hasAnything ? (
         <div className="rounded-xl border border-dashed border-black/15 bg-surface/60 p-10 text-center dark:border-white/15">

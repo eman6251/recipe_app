@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   ChefHat,
@@ -26,13 +27,15 @@ type NavItem = {
   icon: LucideIcon;
   /** Shown in the desktop bar but not the space-limited mobile tab bar. */
   desktopOnly?: boolean;
+  /** Pinned to the right of the desktop bar, beside the profile. */
+  rightAligned?: boolean;
 };
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Home", icon: ChefHat },
   { href: "/recipes", label: "Recipes", icon: BookOpen },
   { href: "/ingredients", label: "Ingredients", icon: Carrot, desktopOnly: true },
-  { href: "/recipe-box", label: "Recipe Box", icon: BookMarked },
+  { href: "/recipe-box", label: "Recipe Box", icon: BookMarked, rightAligned: true },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/week", label: "This Week", icon: UtensilsCrossed },
   { href: "/shopping", label: "Shopping", icon: ShoppingCart },
@@ -119,7 +122,7 @@ function MegaMenu({
   );
 }
 
-export function Nav() {
+export function Nav({ avatarUrl }: { avatarUrl?: string | null }) {
   const pathname = usePathname();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
@@ -144,7 +147,7 @@ export function Nav() {
           </Link>
 
           <nav className="flex items-center gap-1">
-            {NAV_ITEMS.map(({ href, label }) => {
+            {NAV_ITEMS.filter((i) => !i.rightAligned).map(({ href, label }) => {
               const menu = menuFor(href);
               const active = isActive(pathname, href);
               return (
@@ -155,7 +158,7 @@ export function Nav() {
                 >
                   <Link
                     href={href}
-                    className={`block rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                    className={`block whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                       active
                         ? "text-amber-600 dark:text-amber-400"
                         : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
@@ -171,17 +174,42 @@ export function Nav() {
             })}
           </nav>
 
-          <div className="ml-auto flex items-center gap-1">
+          <div className="ml-auto flex items-center gap-2">
+            <Link
+              href="/recipe-box"
+              className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
+                isActive(pathname, "/recipe-box")
+                  ? "border-amber-400 text-amber-600 dark:text-amber-400"
+                  : "border-black/10 text-zinc-600 hover:text-zinc-900 dark:border-white/15 dark:text-zinc-400 dark:hover:text-zinc-100"
+              }`}
+            >
+              <BookMarked className="h-4 w-4" />
+              Recipe Box
+            </Link>
+
             <Link
               href="/profile"
               aria-label="Profile"
-              className={`rounded-lg p-2 transition-colors ${
+              className={`block overflow-hidden rounded-full border-2 transition-colors ${
                 isActive(pathname, "/profile")
-                  ? "text-amber-600 dark:text-amber-400"
-                  : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                  ? "border-amber-400"
+                  : "border-transparent hover:border-black/15 dark:hover:border-white/20"
               }`}
             >
-              <UserRound className="h-5 w-5" />
+              {avatarUrl ? (
+                <Image
+                  src={avatarUrl}
+                  alt=""
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 object-cover"
+                  unoptimized
+                />
+              ) : (
+                <span className="flex h-8 w-8 items-center justify-center bg-black/5 text-zinc-500 dark:bg-white/10 dark:text-zinc-400">
+                  <UserRound className="h-4 w-4" />
+                </span>
+              )}
             </Link>
             <form action={signout}>
               <button
