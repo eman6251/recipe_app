@@ -40,7 +40,14 @@ const ParsedRecipe = z.object({
   tags: z
     .array(z.string())
     .describe(
-      "2-4 lowercase tags. The FIRST tag must be the meal type: one of 'breakfast', 'lunch', 'dinner', or 'dessert' (best guess if unclear). Then descriptive tags like 'chicken', 'high-protein', 'weeknight'",
+      [
+        "Lowercase tags, most specific first. Include, in order:",
+        "1. Meal type — exactly one of: breakfast, lunch, dinner, dessert, snack, side dish (best guess if unclear).",
+        "2. Any diet labels the ingredients clearly support: vegetarian, vegan, dairy-free, gluten-free, high-protein, low-carb. Only include one when the recipe genuinely qualifies — a dish with butter is not dairy-free.",
+        "3. Any equipment that defines how it's cooked: one pot, sheet pan, slow cooker, instant pot, air fryer, grill, no cook.",
+        "4. 'easy' for genuinely simple weeknight recipes, and 'meal prep' if it's clearly designed to batch and reheat.",
+        "5. Then 2-3 descriptive tags like 'chicken', 'thai', 'noodles'.",
+      ].join(" "),
     ),
   notes: z
     .string()

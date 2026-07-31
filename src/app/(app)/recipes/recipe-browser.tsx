@@ -5,9 +5,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { Clock, Flame, Refrigerator, X } from "lucide-react";
 import { matchRecipe } from "@/lib/fridge";
+import { filterCounts, matchesFilters } from "@/lib/filters";
+import { FilterPanel } from "./filter-panel";
 import type { PantryItem, RecipeWithIngredients } from "@/lib/types";
-
-const MEAL_TYPES = ["breakfast", "lunch", "dinner", "dessert"] as const;
 
 const inputClass =
   "rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-white/15";
@@ -19,7 +19,8 @@ export function RecipeBrowser({
   recipes: RecipeWithIngredients[];
   pantry: PantryItem[];
 }) {
-  const [mealFilter, setMealFilter] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [fridgeOpen, setFridgeOpen] = useState(false);
   const [fridgeInput, setFridgeInput] = useState("");
   const [fridgeItems, setFridgeItems] = useState<string[]>([]);
@@ -34,12 +35,18 @@ export function RecipeBrowser({
     setFridgeInput("");
   };
 
-  const filtered = useMemo(() => {
-    let out = recipes;
+  const counts = useMemo(() => filterCounts(recipes), [recipes]);
 
-    if (mealFilter) {
-      out = out.filter((r) => r.tags.includes(mealFilter));
-    }
+  const toggleFilter = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const filtered = useMemo(() => {
+    let out = recipes.filter((r) => matchesFilters(r, selected));
 
     if (fridgeOpen && fridgeItems.length > 0) {
       const pantryNames = pantry.map((p) => p.name);
@@ -55,35 +62,26 @@ export function RecipeBrowser({
     }
 
     return out;
-  }, [recipes, mealFilter, fridgeOpen, fridgeItems, pantry]);
+  }, [recipes, selected, fridgeOpen, fridgeItems, pantry]);
 
   return (
     <>
       {/* Filter bar */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <button
-          onClick={() => setMealFilter(null)}
-          className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-            mealFilter === null
-              ? "bg-amber-400 text-zinc-950"
-              : "bg-surface text-zinc-600 hover:bg-black/5 dark:text-zinc-400 dark:hover:bg-white/10 border border-black/10 dark:border-white/10"
-          }`}
-        >
-          All
-        </button>
-        {MEAL_TYPES.map((meal) => (
-          <button
-            key={meal}
-            onClick={() => setMealFilter(mealFilter === meal ? null : meal)}
-            className={`rounded-full px-3 py-1.5 text-sm font-medium capitalize transition-colors ${
-              mealFilter === meal
-                ? "bg-amber-400 text-zinc-950"
-                : "bg-surface text-zinc-600 hover:bg-black/5 dark:text-zinc-400 dark:hover:bg-white/10 border border-black/10 dark:border-white/10"
-            }`}
-          >
-            {meal}
-          </button>
-        ))}
+        <FilterPanel
+          open={filtersOpen}
+          onOpenChange={setFiltersOpen}
+          selected={selected}
+          onToggle={toggleFilter}
+          onClear={() => setSelected(new Set())}
+          counts={counts}
+        />
+
+        {selected.size > 0 ? (
+          <span className="text-sm text-zinc-500 dark:text-zinc-400">
+            {filtered.length} of {recipes.length}
+          </span>
+        ) : null}
 
         <button
           onClick={() => setFridgeOpen((o) => !o)}
