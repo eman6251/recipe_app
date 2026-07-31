@@ -21,21 +21,24 @@ import { signout } from "@/app/login/actions";
 import { FILTER_GROUPS } from "@/lib/filters";
 import { INGREDIENT_GROUPS } from "@/lib/ingredients";
 
-type NavItem = {
+/**
+ * The mobile tab bar only. Desktop renders DESKTOP_ITEMS instead, where
+ * Calendar/This Week/Shopping/Pantry live under the Organization menu —
+ * a phone has no room for a mega-menu, so those stay top-level here.
+ */
+type MobileItem = {
   href: string;
   label: string;
   icon: LucideIcon;
-  /** Shown in the desktop bar but not the space-limited mobile tab bar. */
+  /** Too many destinations for a phone; these drop off the tab bar. */
   desktopOnly?: boolean;
-  /** Pinned to the right of the desktop bar, beside the profile. */
-  rightAligned?: boolean;
 };
 
-const NAV_ITEMS: NavItem[] = [
+const MOBILE_ITEMS: MobileItem[] = [
   { href: "/", label: "Home", icon: ChefHat },
   { href: "/recipes", label: "Recipes", icon: BookOpen },
   { href: "/ingredients", label: "Ingredients", icon: Carrot, desktopOnly: true },
-  { href: "/recipe-box", label: "Recipe Box", icon: BookMarked, rightAligned: true },
+  { href: "/recipe-box", label: "Recipe Box", icon: BookMarked },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/week", label: "This Week", icon: UtensilsCrossed },
   { href: "/shopping", label: "Shopping", icon: ShoppingCart },
@@ -87,6 +90,45 @@ const INGREDIENT_MENU = INGREDIENT_GROUPS.map((group) => ({
   })),
 }));
 
+const ORGANIZATION_MENU = [
+  {
+    label: "Meal prep",
+    links: [
+      { label: "Calendar", href: "/calendar" },
+      { label: "This Week", href: "/week" },
+    ],
+  },
+  {
+    label: "Groceries",
+    links: [
+      { label: "Shopping list", href: "/shopping" },
+      { label: "Pantry staples", href: "/pantry" },
+    ],
+  },
+];
+
+type MenuColumns = { label: string; links: { label: string; href: string }[] }[];
+
+type DesktopItem = {
+  label: string;
+  /** Absent for menu-only tabs, which have no page of their own. */
+  href?: string;
+  menu?: MenuColumns;
+  /** Paths that should light this tab up, for menu-only entries. */
+  matches?: string[];
+};
+
+const DESKTOP_ITEMS: DesktopItem[] = [
+  { label: "Home", href: "/" },
+  { label: "Recipes", href: "/recipes", menu: RECIPE_MENU },
+  { label: "Ingredients", href: "/ingredients", menu: INGREDIENT_MENU },
+  {
+    label: "Organization",
+    menu: ORGANIZATION_MENU,
+    matches: ["/calendar", "/week", "/shopping", "/pantry"],
+  },
+];
+
 function MegaMenu({
   columns,
   onNavigate,
@@ -126,12 +168,10 @@ export function Nav({ avatarUrl }: { avatarUrl?: string | null }) {
   const pathname = usePathname();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
-  const menuFor = (href: string) =>
-    href === "/recipes"
-      ? RECIPE_MENU
-      : href === "/ingredients"
-        ? INGREDIENT_MENU
-        : null;
+  const itemActive = (item: DesktopItem) =>
+    item.href
+      ? isActive(pathname, item.href)
+      : (item.matches ?? []).some((p) => isActive(pathname, p));
 
   return (
     <>
@@ -147,25 +187,33 @@ export function Nav({ avatarUrl }: { avatarUrl?: string | null }) {
           </Link>
 
           <nav className="flex items-center gap-1">
-            {NAV_ITEMS.filter((i) => !i.rightAligned).map(({ href, label }) => {
-              const menu = menuFor(href);
-              const active = isActive(pathname, href);
+            {DESKTOP_ITEMS.map((item) => {
+              const active = itemActive(item);
+              const className = `block whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                active
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              }`;
               return (
                 <div
-                  key={href}
+                  key={item.label}
                   className="relative"
-                  onMouseEnter={() => setOpenMenu(menu ? href : null)}
+                  onMouseEnter={() => setOpenMenu(item.menu ? item.label : null)}
                 >
-                  <Link
-                    href={href}
-                    className={`block whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                      active
-                        ? "text-amber-600 dark:text-amber-400"
-                        : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-                    }`}
-                  >
-                    {label}
-                  </Link>
+                  {item.href ? (
+                    <Link href={item.href} className={className}>
+                      {item.label}
+                    </Link>
+                  ) : (
+                    <button
+                      onClick={() =>
+                        setOpenMenu(openMenu === item.label ? null : item.label)
+                      }
+                      className={className}
+                    >
+                      {item.label}
+                    </button>
+                  )}
                   {active ? (
                     <span className="absolute inset-x-3 -bottom-3 h-0.5 rounded bg-amber-500" />
                   ) : null}
@@ -227,7 +275,9 @@ export function Nav({ avatarUrl }: { avatarUrl?: string | null }) {
         <div className="relative mx-auto w-full max-w-6xl px-6">
           {openMenu ? (
             <MegaMenu
-              columns={menuFor(openMenu)!}
+              columns={
+                DESKTOP_ITEMS.find((i) => i.label === openMenu)!.menu!
+              }
               onNavigate={() => setOpenMenu(null)}
             />
           ) : null}
@@ -236,7 +286,7 @@ export function Nav({ avatarUrl }: { avatarUrl?: string | null }) {
 
       {/* Mobile: bottom tab bar — a top bar can't hold eight destinations. */}
       <nav className="md:hidden fixed inset-x-0 bottom-0 z-30 flex border-t border-black/10 bg-surface/95 backdrop-blur dark:border-white/10">
-        {NAV_ITEMS.filter((item) => !item.desktopOnly).map(
+        {MOBILE_ITEMS.filter((item) => !item.desktopOnly).map(
           ({ href, label, icon: Icon }) => {
             const active = isActive(pathname, href);
             return (
