@@ -4,7 +4,6 @@ import {
   CalendarDays,
   UtensilsCrossed,
   ShoppingCart,
-  Plus,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { getHomeData } from "@/lib/queries/discover";
@@ -36,15 +35,6 @@ export default async function Home({
       <PageHeader
         title="Welcome back"
         description="Your kitchen command center."
-        action={
-          <Link
-            href="/recipes/new"
-            className="inline-flex items-center gap-2 rounded-lg bg-amber-400 px-4 py-2 text-sm font-medium text-zinc-950 transition-colors hover:bg-amber-300"
-          >
-            <Plus className="h-4 w-4" />
-            Add recipe
-          </Link>
-        }
       />
 
       {/* Quick links */}

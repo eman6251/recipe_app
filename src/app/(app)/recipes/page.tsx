@@ -1,23 +1,24 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
-import {
-  listPantryItems,
-  listRecipesWithIngredients,
-} from "@/lib/queries/recipes";
-import { RecipeBrowser } from "./recipe-browser";
+import { listBrowseRecipes } from "@/lib/queries/browse";
+import { Browse } from "./browse";
 
-export default async function RecipesPage() {
-  const [recipes, pantry] = await Promise.all([
-    listRecipesWithIngredients(),
-    listPantryItems(),
+export default async function RecipesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ f?: string }>;
+}) {
+  const [{ f }, recipes] = await Promise.all([
+    searchParams,
+    listBrowseRecipes(),
   ]);
 
   return (
     <>
       <PageHeader
         title="Recipes"
-        description={`${recipes.length} ${recipes.length === 1 ? "recipe" : "recipes"} in your box.`}
+        description="Everything you've written, plus what other cooks have shared."
         action={
           <Link
             href="/recipes/new"
@@ -28,7 +29,8 @@ export default async function RecipesPage() {
           </Link>
         }
       />
-      <RecipeBrowser recipes={recipes} pantry={pantry} />
+      {/* Remount when the nav picks a different filter so it takes effect. */}
+      <Browse key={f ?? "all"} recipes={recipes} initialFilter={f} />
     </>
   );
 }
