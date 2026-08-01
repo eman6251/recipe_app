@@ -169,7 +169,7 @@ export function RecipeBrowser({
           </p>
         </div>
       ) : (
-        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {filtered.map((recipe) => {
             const totalMinutes =
               (recipe.prep_minutes ?? 0) + (recipe.cook_minutes ?? 0);
