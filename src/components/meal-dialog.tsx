@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { X } from "lucide-react";
 import { addPlannedMeal } from "@/app/(app)/calendar/actions";
+import { RecipePicker } from "@/components/recipe-picker";
 import { addDays, dayLabel, fromISODate } from "@/lib/dates";
 import type { MealSlot } from "@/lib/types";
 import type { RecipeOption } from "@/lib/queries/planner";
@@ -27,12 +28,25 @@ export function MealDialog({
   recipes: RecipeOption[];
   onClose: () => void;
 }) {
-  const [recipeId, setRecipeId] = useState(recipes[0]?.id ?? "");
+  const [recipeId, setRecipeId] = useState("");
   const [slot, setSlot] = useState<MealSlot>("dinner");
+  const [slotTouched, setSlotTouched] = useState(false);
   const [portions, setPortions] = useState("1");
   const [spread, setSpread] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  /** Picking a dessert should default the slot to dessert — but never
+   *  override a slot the user chose deliberately. */
+  const selectRecipe = (id: string) => {
+    setRecipeId(id);
+    if (slotTouched) return;
+    const tags = (recipes.find((r) => r.id === id)?.tags ?? []).map((t) =>
+      t.trim().toLowerCase(),
+    );
+    const inferred = SLOTS.find((s) => tags.includes(s));
+    if (inferred) setSlot(inferred);
+  };
 
   const portionCount = Number(portions) || 1;
   const days = Math.max(1, Math.round(portionCount));
@@ -67,7 +81,7 @@ export function MealDialog({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-xl border border-black/10 bg-surface p-5 shadow-xl dark:border-white/10"
+        className="max-h-[88vh] w-full max-w-md overflow-y-auto rounded-xl border border-black/10 bg-surface p-5 shadow-xl dark:border-white/10"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -93,27 +107,24 @@ export function MealDialog({
               </p>
             ) : null}
 
-            <label className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1.5">
               <span className="text-sm font-medium">Recipe</span>
-              <select
+              <RecipePicker
+                recipes={recipes}
                 value={recipeId}
-                onChange={(e) => setRecipeId(e.target.value)}
-                className={inputClass}
-              >
-                {recipes.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.title}
-                  </option>
-                ))}
-              </select>
-            </label>
+                onChange={selectRecipe}
+              />
+            </div>
 
             <div className="grid grid-cols-2 gap-3">
               <label className="flex flex-col gap-1.5">
                 <span className="text-sm font-medium">Meal</span>
                 <select
                   value={slot}
-                  onChange={(e) => setSlot(e.target.value as MealSlot)}
+                  onChange={(e) => {
+                    setSlot(e.target.value as MealSlot);
+                    setSlotTouched(true);
+                  }}
                   className={`${inputClass} capitalize`}
                 >
                   {SLOTS.map((s) => (

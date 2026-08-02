@@ -69,7 +69,12 @@ export async function listPlannedMealsWithIngredients(
   return (data ?? []) as unknown as PlannedMealWithFullRecipe[];
 }
 
-export type RecipeOption = { id: string; title: string };
+export type RecipeOption = {
+  id: string;
+  title: string;
+  /** Drives the meal-type and tag filters in the recipe picker. */
+  tags: string[];
+};
 
 export async function listRecipeOptions(): Promise<RecipeOption[]> {
   const supabase = await createClient();
@@ -82,7 +87,7 @@ export async function listRecipeOptions(): Promise<RecipeOption[]> {
   // don't belong in the meal-planner picker.
   const { data, error } = await supabase
     .from("recipes")
-    .select("id, title")
+    .select("id, title, tags")
     .eq("user_id", user.id)
     .order("title");
 
