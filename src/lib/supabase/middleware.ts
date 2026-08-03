@@ -38,16 +38,20 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Route protection: everything except /login and /auth/* requires a session.
+  // The home page is browsable signed-out (it shows shared recipes); acting
+  // on anything — opening a recipe, planning, shopping — requires a session.
   const { pathname } = request.nextUrl;
-  const isPublic = pathname.startsWith("/login") || pathname.startsWith("/auth");
+  const isPublic =
+    pathname === "/" ||
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/auth");
 
   // Redirects must carry any auth cookies getUser() just refreshed, or the
   // session refresh is silently lost.
-  const redirectTo = (pathname: string) => {
+  const redirectTo = (pathname: string, next?: string) => {
     const url = request.nextUrl.clone();
     url.pathname = pathname;
-    url.search = "";
+    url.search = next ? `?next=${encodeURIComponent(next)}` : "";
     const response = NextResponse.redirect(url);
     supabaseResponse.cookies
       .getAll()
@@ -56,7 +60,8 @@ export async function updateSession(request: NextRequest) {
   };
 
   if (!user && !isPublic) {
-    return redirectTo("/login");
+    // Remember where they were headed so signing in lands them there.
+    return redirectTo("/login", pathname + request.nextUrl.search);
   }
 
   // Already signed in? Skip the login page.

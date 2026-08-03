@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { getHomeData } from "@/lib/queries/discover";
 import { RecipeRow } from "./recipe-row";
@@ -20,8 +21,12 @@ export default async function Home({
   return (
     <>
       <PageHeader
-        title="Welcome back"
-        description="Your kitchen command center."
+        title={data.signedIn ? "Welcome back" : "Skillet"}
+        description={
+          data.signedIn
+            ? "Your kitchen command center."
+            : "Recipes, meal planning, macros, and a shopping list that thinks."
+        }
         info={
           <>
             <strong>Recommended</strong> is built from what you&apos;ve cooked
@@ -44,10 +49,27 @@ export default async function Home({
         </div>
       ) : null}
 
-      <RecipeRow title="Recently viewed" recipes={data.recentlyViewed} />
+      {!data.signedIn ? (
+        <section className="mb-8 flex flex-wrap items-center gap-4 rounded-xl border border-amber-400/30 bg-surface p-5">
+          <p className="flex-1 text-sm text-zinc-600 dark:text-zinc-300">
+            Browse what people are cooking. Sign in to open a recipe, save it
+            to your recipe box, plan your week, and build a shopping list.
+          </p>
+          <Link
+            href="/login"
+            className="rounded-lg bg-amber-400 px-4 py-2 text-sm font-semibold text-zinc-950 transition-colors hover:bg-amber-300"
+          >
+            Log in or sign up
+          </Link>
+        </section>
+      ) : null}
+
+      {data.signedIn ? (
+        <RecipeRow title="Recently viewed" recipes={data.recentlyViewed} />
+      ) : null}
 
       <RecipeRow
-        title="Recommended for you"
+        title={data.signedIn ? "Recommended for you" : "Highest rated"}
         recipes={data.recommended}
         emptyHint={
           data.cookedCount === 0
@@ -58,13 +80,15 @@ export default async function Home({
 
       <RecipeRow title="New recipes" recipes={data.newlyShared} />
 
-      <RecipeRow
-        title="Recipes by"
-        recipes={data.byAuthor}
-        authors={data.authors}
-        selectedAuthorId={data.selectedAuthorId}
-        emptyHint="No recipes from this cook yet."
-      />
+      {data.signedIn ? (
+        <RecipeRow
+          title="Recipes by"
+          recipes={data.byAuthor}
+          authors={data.authors}
+          selectedAuthorId={data.selectedAuthorId}
+          emptyHint="No recipes from this cook yet."
+        />
+      ) : null}
     </>
   );
 }

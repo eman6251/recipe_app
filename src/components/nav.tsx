@@ -164,7 +164,13 @@ function MegaMenu({
   );
 }
 
-export function Nav({ avatarUrl }: { avatarUrl?: string | null }) {
+export function Nav({
+  avatarUrl,
+  signedIn = true,
+}: {
+  avatarUrl?: string | null;
+  signedIn?: boolean;
+}) {
   const pathname = usePathname();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
@@ -223,6 +229,8 @@ export function Nav({ avatarUrl }: { avatarUrl?: string | null }) {
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
+            {signedIn ? (
+              <>
             <Link
               href="/recipe-box"
               className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
@@ -268,6 +276,15 @@ export function Nav({ avatarUrl }: { avatarUrl?: string | null }) {
                 <LogOut className="h-5 w-5" />
               </button>
             </form>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                className="rounded-lg bg-amber-400 px-4 py-1.5 text-sm font-semibold text-zinc-950 transition-colors hover:bg-amber-300"
+              >
+                Log in
+              </Link>
+            )}
           </div>
         </div>
 

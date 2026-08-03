@@ -27,6 +27,8 @@ type RecipeRow = {
 
 /** Everything the home page needs, gathered in one pass. */
 export type HomeData = {
+  /** False for signed-out visitors, who only see shared recipes. */
+  signedIn: boolean;
   recentlyViewed: RecipeCard[];
   recommended: RecipeCard[];
   newlyShared: RecipeCard[];
@@ -46,6 +48,7 @@ export async function getHomeData(authorId?: string): Promise<HomeData> {
   } = await supabase.auth.getUser();
 
   const empty: HomeData = {
+    signedIn: !!user,
     recentlyViewed: [],
     recommended: [],
     newlyShared: [],
@@ -54,7 +57,51 @@ export async function getHomeData(authorId?: string): Promise<HomeData> {
     selectedAuthorId: null,
     cookedCount: 0,
   };
-  if (!user) return empty;
+  if (!user) {
+    // Signed out: RLS exposes only shared recipes, so browse those.
+    const [{ data: shared }, { data: anonProfiles }, { data: anonRatings }] =
+      await Promise.all([
+        supabase.from("recipes").select(CARD_FIELDS),
+        supabase.from("profiles").select("id, display_name"),
+        supabase.from("recipe_ratings").select("recipe_id, rating"),
+      ]);
+
+    const names = new Map(
+      (anonProfiles ?? []).map((p) => [p.id, p.display_name as string]),
+    );
+    const anonStats = new Map<string, { sum: number; count: number }>();
+    for (const r of anonRatings ?? []) {
+      const st = anonStats.get(r.recipe_id) ?? { sum: 0, count: 0 };
+      st.sum += r.rating;
+      st.count += 1;
+      anonStats.set(r.recipe_id, st);
+    }
+    const cards = ((shared ?? []) as RecipeRow[]).map((r) => {
+      const st = anonStats.get(r.id);
+      return {
+        id: r.id,
+        title: r.title,
+        image_url: r.image_url,
+        tags: r.tags ?? [],
+        macros_per_serving: r.macros_per_serving,
+        authorName: names.get(r.user_id) ?? "Unknown",
+        avgRating: st ? st.sum / st.count : null,
+        ratingCount: st?.count ?? 0,
+      };
+    });
+
+    return {
+      ...empty,
+      newlyShared: [...cards]
+        .sort((a, b) => a.title.localeCompare(b.title))
+        .slice(0, 12),
+      // Stands in for "recommended" when there's no history to go on.
+      recommended: cards
+        .filter((c) => c.avgRating != null)
+        .sort((a, b) => (b.avgRating ?? 0) - (a.avgRating ?? 0))
+        .slice(0, 12),
+    };
+  }
 
   // Everything visible: own recipes plus anything shared.
   const [{ data: visible }, { data: profiles }, { data: ratings }] =
@@ -171,6 +218,7 @@ export async function getHomeData(authorId?: string): Promise<HomeData> {
     .map(toCard);
 
   return {
+    signedIn: true,
     recentlyViewed,
     recommended,
     newlyShared,

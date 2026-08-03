@@ -4,8 +4,15 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
+/** Only same-site paths, so a crafted ?next= can't bounce users off-site. */
+function safeNext(raw: FormDataEntryValue | null): string {
+  const next = (raw as string) ?? "";
+  return next.startsWith("/") && !next.startsWith("//") ? next : "/";
+}
+
 export async function login(formData: FormData) {
   const supabase = await createClient();
+  const next = safeNext(formData.get("next"));
 
   const { error } = await supabase.auth.signInWithPassword({
     email: formData.get("email") as string,
@@ -17,11 +24,12 @@ export async function login(formData: FormData) {
   }
 
   revalidatePath("/", "layout");
-  redirect("/");
+  redirect(next);
 }
 
 export async function signup(formData: FormData) {
   const supabase = await createClient();
+  const next = safeNext(formData.get("next"));
 
   const { data, error } = await supabase.auth.signUp({
     email: formData.get("email") as string,
@@ -43,7 +51,7 @@ export async function signup(formData: FormData) {
   }
 
   revalidatePath("/", "layout");
-  redirect("/");
+  redirect(next);
 }
 
 export async function signout() {
