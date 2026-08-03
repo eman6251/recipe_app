@@ -28,13 +28,25 @@ function tokens(s: string): string[] {
 }
 
 /**
+ * Size adjectives, dropped when grouping for the shopping list: a recipe
+ * calling for a large lime in the marinade and a lime in the sauce still
+ * means buying limes. Deliberately excludes words that change what you'd
+ * actually buy — "whole" milk, "extra virgin" oil, "baby" spinach — and
+ * anything about form ("fresh" vs "dried" herbs are not interchangeable).
+ */
+const SIZE_WORDS = new Set(["large", "small", "medium", "jumbo", "big"]);
+
+/**
  * Grouping key for aggregating the same ingredient across recipes (shopping
  * list). Unlike `covers`, this is exact-match, not subset — "onion" and
  * "green onion" must stay separate items you'd buy independently, even
  * though `covers` treats them as interchangeable for fridge search.
  */
 export function canonicalKey(item: string): string {
-  return tokens(item).join(" ");
+  const all = tokens(item);
+  const stripped = all.filter((t) => !SIZE_WORDS.has(t));
+  // Don't let an item named only by its size vanish entirely.
+  return (stripped.length > 0 ? stripped : all).join(" ");
 }
 
 /** Does `have` (a fridge/pantry term) cover `need` (an ingredient line item)? */

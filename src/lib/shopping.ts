@@ -36,7 +36,6 @@ export type ShoppingLine = {
   mergedFrom?: string[];
 };
 
-/** Expand each planned meal's recipe ingredients, scaled to planned servings. */
 /**
  * Expand a week's planned meals into ingredient lines.
  *
@@ -127,6 +126,7 @@ export function buildShoppingList(
     fragments: { qty: number | null; unit: string | null }[];
     recipeTitles: Set<string>;
     sourceNames: Set<string>;
+    spellings: string[];
   };
 
   const groups = new Map<string, Group>();
@@ -139,13 +139,14 @@ export function buildShoppingList(
     let g = groups.get(key);
     if (!g) {
       g = {
-        // Prefer the canonical name when this group merges several spellings.
+        // Replaced below with the plainest of the merged spellings.
         item: key === rawKey ? line.item : key,
         totalGrams: 0,
         gramsKnownForAll: true,
         fragments: [],
         recipeTitles: new Set(),
         sourceNames: new Set(),
+        spellings: [],
       };
       groups.set(key, g);
     }
@@ -156,6 +157,7 @@ export function buildShoppingList(
     g.fragments.push({ qty: line.quantity, unit: line.unit });
     g.recipeTitles.add(line.recipeTitle);
     g.sourceNames.add(line.item.trim().toLowerCase());
+    g.spellings.push(line.item.trim());
   }
 
   const toBuy: ShoppingLine[] = [];
@@ -163,9 +165,14 @@ export function buildShoppingList(
 
   for (const [key, g] of groups) {
     const totalGrams = g.gramsKnownForAll ? g.totalGrams : null;
+    // Fewest words wins, so a merged group is labelled by its plain form
+    // rather than by whichever recipe happened to be read first.
+    const plainest = [...g.spellings].sort(
+      (a, b) => a.split(/\s+/).length - b.split(/\s+/).length || a.length - b.length,
+    )[0];
     const line: ShoppingLine = {
       key,
-      item: g.item,
+      item: plainest ?? g.item,
       totalGrams,
       quantityDisplay: formatFragments(g.fragments),
       recipeTitles: [...g.recipeTitles],
