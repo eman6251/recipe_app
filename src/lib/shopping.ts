@@ -37,17 +37,40 @@ export type ShoppingLine = {
 };
 
 /** Expand each planned meal's recipe ingredients, scaled to planned servings. */
+/**
+ * Expand a week's planned meals into ingredient lines.
+ *
+ * Aggregated per recipe rather than per planned day: you shop for a recipe
+ * once, however many days you've spread its portions across. Scaling each
+ * day's portion separately both over-counted (a recipe planned across more
+ * days kept adding ingredients) and under-counted (a single portion of a
+ * four-serving recipe bought a quarter of the ingredients, when you'd
+ * actually cook the whole thing).
+ */
 export function flattenPlannedMeals(
   planned: PlannedMealWithFullRecipe[],
 ): ShoppingIngredientInput[] {
-  const out: ShoppingIngredientInput[] = [];
+  const byRecipe = new Map<
+    string,
+    { recipe: NonNullable<PlannedMealWithFullRecipe["recipes"]>; portions: number }
+  >();
 
   for (const meal of planned) {
     const recipe = meal.recipes;
     if (!recipe) continue;
+    const existing = byRecipe.get(meal.recipe_id);
+    if (existing) existing.portions += meal.servings || 1;
+    else byRecipe.set(meal.recipe_id, { recipe, portions: meal.servings || 1 });
+  }
 
+  const out: ShoppingIngredientInput[] = [];
+
+  for (const { recipe, portions } of byRecipe.values()) {
     const baseServings = recipe.servings || 1;
-    const scale = (meal.servings || 1) / baseServings;
+    // Never below a single batch — you can't cook part of a recipe, so
+    // planning fewer portions than it yields still needs all its ingredients.
+    const scale = Math.max(1, portions / baseServings);
+    const title = scale > 1 ? `${recipe.title} ×${formatQuantity(scale)}` : recipe.title;
 
     for (const ing of recipe.recipe_ingredients) {
       if (!ing.item?.trim()) continue;
@@ -56,7 +79,7 @@ export function flattenPlannedMeals(
         quantity: ing.quantity != null ? ing.quantity * scale : null,
         unit: ing.unit,
         grams: ing.grams != null ? ing.grams * scale : null,
-        recipeTitle: recipe.title,
+        recipeTitle: title,
       });
     }
   }
