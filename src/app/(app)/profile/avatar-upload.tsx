@@ -12,7 +12,31 @@ const ALLOWED = ["image/jpeg", "image/png", "image/webp"];
 export function AvatarUpload({ avatarUrl }: { avatarUrl: string | null }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+  // Child elements fire dragleave too, so count rather than clear on first.
+  const dragDepth = useRef(0);
   const [pending, startTransition] = useTransition();
+
+  const dropHandlers = {
+    onDragEnter: (e: React.DragEvent) => {
+      e.preventDefault();
+      dragDepth.current += 1;
+      if (e.dataTransfer.types.includes("Files")) setDragging(true);
+    },
+    onDragOver: (e: React.DragEvent) => e.preventDefault(),
+    onDragLeave: (e: React.DragEvent) => {
+      e.preventDefault();
+      dragDepth.current -= 1;
+      if (dragDepth.current <= 0) setDragging(false);
+    },
+    onDrop: (e: React.DragEvent) => {
+      e.preventDefault();
+      dragDepth.current = 0;
+      setDragging(false);
+      const file = e.dataTransfer.files?.[0];
+      if (file) upload(file);
+    },
+  };
 
   const upload = (file: File) => {
     setError(null);
@@ -55,8 +79,12 @@ export function AvatarUpload({ avatarUrl }: { avatarUrl: string | null }) {
   };
 
   return (
-    <div className="flex items-center gap-4">
-      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full border border-black/10 bg-canvas dark:border-white/10">
+    <div className="flex items-center gap-4" {...dropHandlers}>
+      <div
+        className={`relative h-20 w-20 shrink-0 overflow-hidden rounded-full border-2 transition-colors ${
+          dragging ? "border-amber-400" : "border-black/10 dark:border-white/10"
+        } bg-canvas`}
+      >
         {avatarUrl ? (
           <Image src={avatarUrl} alt="" fill className="object-cover" unoptimized />
         ) : (
@@ -84,7 +112,13 @@ export function AvatarUpload({ avatarUrl }: { avatarUrl: string | null }) {
           disabled={pending}
           className="rounded-lg border border-black/10 px-3 py-1.5 text-sm font-medium transition-colors hover:bg-black/5 disabled:opacity-50 dark:border-white/10 dark:hover:bg-white/5"
         >
-          {pending ? "Uploading…" : avatarUrl ? "Change photo" : "Add photo"}
+          {pending
+            ? "Uploading…"
+            : dragging
+              ? "Drop to upload"
+              : avatarUrl
+                ? "Change photo"
+                : "Add photo"}
         </button>
         {error ? (
           <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">{error}</p>

@@ -20,7 +20,32 @@ export function RecipeImage({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+  // dragenter/dragleave also fire when crossing child elements, so count
+  // them rather than clearing the highlight on the first leave.
+  const dragDepth = useRef(0);
   const [pending, startTransition] = useTransition();
+
+  const dropHandlers = {
+    onDragEnter: (e: React.DragEvent) => {
+      e.preventDefault();
+      dragDepth.current += 1;
+      if (e.dataTransfer.types.includes("Files")) setDragging(true);
+    },
+    onDragOver: (e: React.DragEvent) => e.preventDefault(),
+    onDragLeave: (e: React.DragEvent) => {
+      e.preventDefault();
+      dragDepth.current -= 1;
+      if (dragDepth.current <= 0) setDragging(false);
+    },
+    onDrop: (e: React.DragEvent) => {
+      e.preventDefault();
+      dragDepth.current = 0;
+      setDragging(false);
+      const file = e.dataTransfer.files?.[0];
+      if (file) upload(file);
+    },
+  };
 
   const upload = (file: File) => {
     setError(null);
@@ -75,7 +100,7 @@ export function RecipeImage({
   };
 
   return (
-    <div className="mb-6">
+    <div className="mb-6" {...dropHandlers}>
       <input
         ref={inputRef}
         type="file"
@@ -89,7 +114,13 @@ export function RecipeImage({
       />
 
       {imageUrl ? (
-        <div className="group/img relative overflow-hidden rounded-xl border border-black/10 dark:border-white/10">
+        <div
+          className={`group/img relative overflow-hidden rounded-xl border transition-colors ${
+            dragging
+              ? "border-amber-400"
+              : "border-black/10 dark:border-white/10"
+          }`}
+        >
           {/*
             A fixed aspect ratio (rather than a fixed height) keeps the framing
             identical at every window width. Since these are arbitrary phone
@@ -136,10 +167,18 @@ export function RecipeImage({
         <button
           onClick={() => inputRef.current?.click()}
           disabled={pending}
-          className="flex h-32 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-black/15 text-sm text-zinc-500 transition-colors hover:border-amber-500/50 hover:text-amber-600 disabled:opacity-50 dark:border-white/15 dark:text-zinc-400 dark:hover:text-amber-400"
+          className={`flex h-32 w-full items-center justify-center gap-2 rounded-xl border border-dashed text-sm transition-colors disabled:opacity-50 ${
+            dragging
+              ? "border-amber-400 bg-amber-400/10 text-amber-600 dark:text-amber-400"
+              : "border-black/15 text-zinc-500 hover:border-amber-500/50 hover:text-amber-600 dark:border-white/15 dark:text-zinc-400 dark:hover:text-amber-400"
+          }`}
         >
           <ImagePlus className="h-4 w-4" />
-          {pending ? "Uploading…" : "Add a photo"}
+          {pending
+            ? "Uploading…"
+            : dragging
+              ? "Drop to upload"
+              : "Add a photo, or drag one here"}
         </button>
       )}
 
