@@ -10,7 +10,7 @@ const inputClass =
 export function ImportPanel({
   onParsed,
 }: {
-  onParsed: (draft: ParsedRecipeDraft) => void;
+  onParsed: (draft: ParsedRecipeDraft, sourceUrl?: string) => void;
 }) {
   const [caption, setCaption] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +23,7 @@ export function ImportPanel({
       if ("error" in result) {
         setError(result.error);
       } else {
-        onParsed(result.draft);
+        onParsed(result.draft, result.sourceUrl);
       }
     });
   };
@@ -35,14 +35,14 @@ export function ImportPanel({
         <h2 className="text-sm font-semibold">Import with AI</h2>
       </div>
       <p className="text-sm text-zinc-500 dark:text-zinc-400">
-        Paste the caption from a TikTok/Instagram recipe (or any recipe text) and
-        Claude will fill in the form below for you to review.
+        Paste a TikTok link and Claude reads the caption for you. For Instagram
+        (or anything else), paste the caption text itself.
       </p>
       <textarea
         value={caption}
         onChange={(e) => setCaption(e.target.value)}
         rows={5}
-        placeholder={"HIGH PROTEIN honey garlic chicken 🔥\n\nIngredients:\n- 2 lbs chicken thighs\n- 3 tbsp honey\n…"}
+        placeholder={"https://www.tiktok.com/@creator/video/123…\n\n— or paste the caption —\n\nHIGH PROTEIN honey garlic chicken 🔥\n\nIngredients:\n- 2 lbs chicken thighs\n- 3 tbsp honey\n…"}
         className={inputClass}
         disabled={pending}
       />
