@@ -12,6 +12,8 @@ export async function setRecipeShared(recipeId: string, isPublic: boolean) {
   if (error) return { error: error.message };
 
   revalidatePath(`/recipes/${recipeId}`);
+  revalidatePath("/recipe-box");
+  revalidatePath("/recipes");
   revalidatePath("/");
   return {};
 }

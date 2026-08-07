@@ -7,6 +7,7 @@ import { Clock, Flame, Refrigerator, X } from "lucide-react";
 import { matchRecipe } from "@/lib/fridge";
 import { filterCounts, matchesFilters } from "@/lib/filters";
 import { FilterPanel } from "./filter-panel";
+import { ShareToggle } from "./share-toggle";
 import type { PantryItem, RecipeWithIngredients } from "@/lib/types";
 
 const inputClass =
@@ -15,9 +16,12 @@ const inputClass =
 export function RecipeBrowser({
   recipes,
   pantry,
+  userId,
 }: {
   recipes: RecipeWithIngredients[];
   pantry: PantryItem[];
+  /** Saved recipes belong to someone else, so only own ones can be shared. */
+  userId: string | null;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -174,7 +178,7 @@ export function RecipeBrowser({
             const totalMinutes =
               (recipe.prep_minutes ?? 0) + (recipe.cook_minutes ?? 0);
             return (
-              <li key={recipe.id}>
+              <li key={recipe.id} className="relative">
                 <Link
                   href={`/recipes/${recipe.id}`}
                   className="flex h-full flex-col overflow-hidden rounded-xl border border-black/10 bg-surface transition-colors hover:border-amber-500/50 dark:border-white/10"
@@ -228,6 +232,12 @@ export function RecipeBrowser({
                   ) : null}
                   </div>
                 </Link>
+                {userId && recipe.user_id === userId ? (
+                  <ShareToggle
+                    recipeId={recipe.id}
+                    isPublic={recipe.is_public}
+                  />
+                ) : null}
               </li>
             );
           })}

@@ -2,15 +2,17 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import {
+  currentUserId,
   listPantryItems,
   listRecipesWithIngredients,
 } from "@/lib/queries/recipes";
 import { RecipeBrowser } from "./recipe-browser";
 
 export default async function RecipesPage() {
-  const [recipes, pantry] = await Promise.all([
+  const [recipes, pantry, userId] = await Promise.all([
     listRecipesWithIngredients(),
     listPantryItems(),
+    currentUserId(),
   ]);
 
   return (
@@ -37,7 +39,7 @@ export default async function RecipesPage() {
           </Link>
         }
       />
-      <RecipeBrowser recipes={recipes} pantry={pantry} />
+      <RecipeBrowser recipes={recipes} pantry={pantry} userId={userId} />
     </>
   );
 }
