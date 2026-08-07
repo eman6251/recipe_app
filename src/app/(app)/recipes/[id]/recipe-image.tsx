@@ -128,7 +128,14 @@ export function RecipeImage({
             dish stays visible, with a blurred copy filling the leftover space
             instead of empty bars.
           */}
-          <div className="relative aspect-[3/2] w-full bg-black/5 dark:bg-black/30">
+          {/*
+            A bounded height rather than an aspect ratio: at full container
+            width, 3:2 made the photo ~770px tall and pushed the recipe itself
+            off-screen. Because the image is contained rather than cropped,
+            fixing the height changes how much space it takes, not how much of
+            the photo you see.
+          */}
+          <div className="relative h-56 w-full bg-black/5 sm:h-72 md:h-80 dark:bg-black/30">
             <Image
               src={imageUrl}
               alt=""
