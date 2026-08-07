@@ -193,22 +193,24 @@ export async function getHomeData(authorId?: string): Promise<HomeData> {
     .slice(0, 12)
     .map(({ r }) => toCard(r));
 
-  // ---- By author: anyone with recipes visible to this user.
-  const authorIds = new Set(recipes.map((r) => r.user_id));
+  // ---- By author: other cooks only. Your own recipes are a click away in
+  // the recipe box, so this row is for discovering everyone else's.
+  const authorIds = new Set(
+    recipes.filter((r) => r.user_id !== user.id).map((r) => r.user_id),
+  );
   const authors: Author[] = [...authorIds]
     .map((id) => ({ id, display_name: nameById.get(id) ?? "Unknown" }))
-    .sort((a, b) =>
-      // Own recipes first, then alphabetical.
-      a.id === user.id ? -1 : b.id === user.id ? 1 : a.display_name.localeCompare(b.display_name),
-    );
+    .sort((a, b) => a.display_name.localeCompare(b.display_name));
 
   const selectedAuthorId =
-    authorId && authorIds.has(authorId) ? authorId : user.id;
+    authorId && authorIds.has(authorId) ? authorId : (authors[0]?.id ?? null);
 
-  const byAuthor = recipes
-    .filter((r) => r.user_id === selectedAuthorId)
-    .map(toCard)
-    .sort((a, b) => a.title.localeCompare(b.title));
+  const byAuthor = selectedAuthorId
+    ? recipes
+        .filter((r) => r.user_id === selectedAuthorId)
+        .map(toCard)
+        .sort((a, b) => a.title.localeCompare(b.title))
+    : [];
 
   // What people have been publishing lately.
   const newlyShared = recipes

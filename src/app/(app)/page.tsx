@@ -86,7 +86,7 @@ export default async function Home({
           recipes={data.byAuthor}
           authors={data.authors}
           selectedAuthorId={data.selectedAuthorId}
-          emptyHint="No recipes from this cook yet."
+          emptyHint="No one else has shared any recipes yet — when they do, they'll show up here."
         />
       ) : null}
     </>
