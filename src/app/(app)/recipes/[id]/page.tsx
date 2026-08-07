@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Clock, ExternalLink, Flame, Pencil } from "lucide-react";
 import { currentUserId, getRecipe } from "@/lib/queries/recipes";
 import { createClient } from "@/lib/supabase/server";
+import { InfoTip } from "@/components/info-tip";
 import { RecipeSocial } from "./recipe-social";
 import { RecipeView } from "./recipe-view";
 import { DeleteRecipeButton } from "./delete-button";
@@ -85,8 +86,15 @@ export default async function RecipeDetailPage({
               protein · {Math.round(macros.carbs_g)}g carbs ·{" "}
               {Math.round(macros.fat_g)}g fat
               <span className="text-zinc-400 dark:text-zinc-500">
-                / serving
+                / serving (estimated)
               </span>
+              <InfoTip>
+                Macros are an <strong>estimate, not a measurement</strong>, and
+                this part of the app is still being worked on. Each ingredient
+                is matched to a USDA food and scaled by an estimated weight, so
+                a rough gram estimate or an imperfect match can move the
+                numbers. Treat them as a guide rather than a precise count.
+              </InfoTip>
             </span>
           ) : null}
           {recipe.source_url ? (

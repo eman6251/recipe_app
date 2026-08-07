@@ -36,6 +36,11 @@ export function MacroButton({
             : "Compute macros"}
       </button>
 
+      <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+        Still a work in progress — matches and gram estimates aren&apos;t
+        always right, so check the breakdown before trusting the totals.
+      </p>
+
       {result && !result.ok ? (
         <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-400">
           {result.error}

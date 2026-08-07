@@ -36,7 +36,9 @@ export default async function WeekPage({
             per-serving values times the portions planned; the daily average
             divides by days that actually have meals, so a half-planned week
             isn&apos;t reported as starvation. Recipes without computed macros are
-            called out rather than silently counted as zero.
+            called out rather than silently counted as zero. Macros are
+            estimates and this part of the app is still being refined, so treat
+            weekly totals as a guide.
           </>
         }
       />
