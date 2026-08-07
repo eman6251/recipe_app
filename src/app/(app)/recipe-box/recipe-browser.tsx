@@ -234,7 +234,7 @@ export function RecipeBrowser({
                       {recipe.tags.length > 3 ? (
                         <span
                           title={recipe.tags.slice(3).join(", ")}
-                          className="rounded-full px-1 py-0.5 text-xs text-zinc-500 dark:text-zinc-400"
+                          className="rounded-full bg-amber-50 px-2 py-0.5 text-xs text-amber-700 dark:bg-amber-950 dark:text-amber-400"
                         >
                           +{recipe.tags.length - 3}
                         </span>
