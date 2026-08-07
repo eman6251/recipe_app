@@ -5,6 +5,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { logAiUsage } from "@/lib/ai-usage";
 import { getRecipe } from "@/lib/queries/recipes";
 import {
   searchUsdaCandidates,
@@ -73,6 +74,8 @@ async function fillMissingGrams(
       output_config: { format: zodOutputFormat(GramEstimates) },
     });
 
+    await logAiUsage("macro_grams", "claude-sonnet-5", response.usage);
+
     for (const e of response.parsed_output?.estimates ?? []) {
       if (e.grams != null && e.grams > 0) out.set(e.index, e.grams);
     }
@@ -129,6 +132,8 @@ async function chooseMatches(
         messages: [{ role: "user", content: listing }],
         output_config: { format: zodOutputFormat(MatchChoices) },
       });
+
+      await logAiUsage("macro_match", "claude-sonnet-5", response.usage);
 
       const byItem = new Map(
         (response.parsed_output?.choices ?? []).map((c) => [

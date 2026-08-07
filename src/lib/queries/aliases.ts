@@ -5,6 +5,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { BUILTIN_SYNONYMS } from "@/lib/synonyms";
+import { logAiUsage } from "@/lib/ai-usage";
 
 const AliasChoices = z.object({
   names: z.array(
@@ -85,6 +86,8 @@ export async function resolveIngredientAliases(
       ],
       output_config: { format: zodOutputFormat(AliasChoices) },
     });
+
+    await logAiUsage("ingredient_alias", "claude-sonnet-5", response.usage);
 
     const choices = new Map(
       (response.parsed_output?.names ?? []).map((c) => [

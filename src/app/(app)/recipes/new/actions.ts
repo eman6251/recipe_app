@@ -3,6 +3,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
+import { logAiUsage } from "@/lib/ai-usage";
 
 // What Claude extracts from a pasted caption. Mirrors RecipePayload plus
 // per-ingredient gram estimates (feeds the USDA macro phase later).
@@ -165,6 +166,8 @@ export async function parseCaption(caption: string): Promise<ParseResult> {
       ],
       output_config: { format: zodOutputFormat(ParsedRecipe) },
     });
+
+    await logAiUsage("import", "claude-sonnet-5", response.usage);
 
     if (!response.parsed_output) {
       return { error: "Claude couldn't produce a valid recipe from that text. Try cleaning up the caption and re-pasting." };
