@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Plus, X } from "lucide-react";
 import { parseQuantity } from "@/lib/quantity";
+import { FILTER_GROUPS } from "@/lib/filters";
 import type { RecipePayload } from "./actions";
 import type { RecipeWithIngredients } from "@/lib/types";
 
@@ -50,6 +51,29 @@ function rowsFromInitial(initial?: RecipeWithIngredients): IngredientRow[] {
     fdc_id: ing.fdc_id,
   }));
 }
+
+/**
+ * One-click tags, taken from the same vocabulary the filters use so a typed
+ * tag and a filtered one can't drift apart ("mealprep" vs "meal prep").
+ */
+const SUGGESTED_TAGS: string[] = [
+  ...new Set([
+    ...["meal", "diet", "equipment"].flatMap(
+      (id) =>
+        FILTER_GROUPS.find((g) => g.id === id)?.options.map((o) =>
+          o.label.toLowerCase(),
+        ) ?? [],
+    ),
+    "meal prep",
+    "easy",
+  ]),
+];
+
+const splitTags = (raw: string) =>
+  raw
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
 
 const inputClass =
   "rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-white/15";
@@ -336,6 +360,35 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: Props) {
             placeholder="chicken, high-protein, weeknight"
             className={inputClass}
           />
+          <div className="flex flex-wrap gap-1.5">
+            {SUGGESTED_TAGS.map((tag) => {
+              const current = splitTags(tags);
+              const active = current.some(
+                (t) => t.toLowerCase() === tag,
+              );
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() =>
+                    setTags(
+                      (active
+                        ? current.filter((t) => t.toLowerCase() !== tag)
+                        : [...current, tag]
+                      ).join(", "),
+                    )
+                  }
+                  className={`rounded-full px-2 py-0.5 text-xs font-medium transition-colors ${
+                    active
+                      ? "bg-amber-400 text-zinc-950"
+                      : "border border-black/10 text-zinc-500 hover:bg-black/5 dark:border-white/10 dark:text-zinc-400 dark:hover:bg-white/10"
+                  }`}
+                >
+                  {tag}
+                </button>
+              );
+            })}
+          </div>
         </label>
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium">
