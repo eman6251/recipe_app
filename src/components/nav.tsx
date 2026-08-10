@@ -111,7 +111,6 @@ type MenuColumns = { label: string; links: { label: string; href: string }[] }[]
 
 type DesktopItem = {
   label: string;
-  /** Absent for menu-only tabs, which have no page of their own. */
   href?: string;
   menu?: MenuColumns;
   /** Paths that should light this tab up, for menu-only entries. */
@@ -124,6 +123,7 @@ const DESKTOP_ITEMS: DesktopItem[] = [
   { label: "Ingredients", href: "/ingredients", menu: INGREDIENT_MENU },
   {
     label: "Organization",
+    href: "/organization",
     menu: ORGANIZATION_MENU,
     matches: ["/calendar", "/week", "/shopping", "/pantry"],
   },
@@ -175,9 +175,8 @@ export function Nav({
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   const itemActive = (item: DesktopItem) =>
-    item.href
-      ? isActive(pathname, item.href)
-      : (item.matches ?? []).some((p) => isActive(pathname, p));
+    (item.href ? isActive(pathname, item.href) : false) ||
+    (item.matches ?? []).some((p) => isActive(pathname, p));
 
   return (
     <>
