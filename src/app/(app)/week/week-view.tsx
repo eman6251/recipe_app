@@ -221,7 +221,7 @@ export function WeekView({
                 </button>
 
                 <Link
-                  href={`/recipes/${entry.recipeId}`}
+                  href={`/recipes/${entry.recipeId}?portions=${entry.portions}`}
                   className={`truncate text-sm hover:underline ${
                     entry.cooked
                       ? "text-zinc-400 line-through dark:text-zinc-500"
@@ -311,7 +311,9 @@ export function WeekView({
                         </span>
 
                         <Link
-                          href={`/recipes/${meal.recipe_id}`}
+                          href={`/recipes/${meal.recipe_id}?portions=${
+                            prepMap.get(meal.recipe_id)?.portions ?? meal.servings
+                          }`}
                           className={`truncate text-sm hover:underline ${
                             meal.cooked ? "text-zinc-400 line-through dark:text-zinc-500" : ""
                           }`}

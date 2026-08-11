@@ -12,10 +12,13 @@ import { RecipeImage } from "./recipe-image";
 
 export default async function RecipeDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ portions?: string }>;
 }) {
-  const { id } = await params;
+  const [{ id }, { portions }] = await Promise.all([params, searchParams]);
+  const plannedPortions = portions ? Number(portions) : undefined;
   const recipe = await getRecipe(id);
   if (!recipe) notFound();
 
@@ -138,7 +141,14 @@ export default async function RecipeDetailPage({
         {isOwner ? <MacroButton recipeId={recipe.id} hasMacros={!!macros} /> : null}
       </header>
 
-      <RecipeView recipe={recipe} />
+      <RecipeView
+        recipe={recipe}
+        plannedPortions={
+          plannedPortions && Number.isFinite(plannedPortions)
+            ? plannedPortions
+            : undefined
+        }
+      />
     </article>
   );
 }

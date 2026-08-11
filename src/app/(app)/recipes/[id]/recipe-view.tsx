@@ -40,12 +40,33 @@ function formatAmount(
   return `${formatQuantity(ing.quantity * multiplier)}${ing.unit ? ` ${ing.unit}` : ""}`;
 }
 
-export function RecipeView({ recipe }: { recipe: RecipeWithIngredients }) {
-  const [multiplier, setMultiplier] = useState(1);
+export function RecipeView({
+  recipe,
+  plannedPortions,
+}: {
+  recipe: RecipeWithIngredients;
+  /** Portions planned for this recipe in a week, arrived at from the planner. */
+  plannedPortions?: number;
+}) {
+  // Cooking for a planned week means cooking a scaled batch, so open at that
+  // scale rather than the recipe's own yield.
+  const plannedMultiplier =
+    plannedPortions && plannedPortions > 0
+      ? plannedPortions / (recipe.servings || 1)
+      : null;
+
+  const [multiplier, setMultiplier] = useState(plannedMultiplier ?? 1);
   const [unitMode, setUnitMode] = useState<UnitMode>("original");
   const [checkedSteps, setCheckedSteps] = useState<Set<number>>(new Set());
 
   const anyGrams = recipe.recipe_ingredients.some((i) => i.grams != null);
+
+  const multiplierOptions =
+    plannedMultiplier && !MULTIPLIERS.includes(plannedMultiplier)
+      ? [...MULTIPLIERS, plannedMultiplier].sort((a, b) => a - b)
+      : MULTIPLIERS;
+
+  const scaled = multiplier !== 1;
 
   const scaledServings = recipe.servings * multiplier;
 
@@ -80,7 +101,7 @@ export function RecipeView({ recipe }: { recipe: RecipeWithIngredients }) {
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold">Ingredients</h2>
           <div className="flex items-center rounded-lg border border-black/10 p-0.5 dark:border-white/10">
-            {MULTIPLIERS.map((m) => (
+            {multiplierOptions.map((m) => (
               <button
                 key={m}
                 onClick={() => setMultiplier(m)}
@@ -90,7 +111,7 @@ export function RecipeView({ recipe }: { recipe: RecipeWithIngredients }) {
                     : "text-zinc-600 hover:bg-black/5 dark:text-zinc-400 dark:hover:bg-white/5"
                 }`}
               >
-                {m}×
+                {formatQuantity(m)}×
               </button>
             ))}
           </div>
@@ -123,6 +144,28 @@ export function RecipeView({ recipe }: { recipe: RecipeWithIngredients }) {
           </div>
         ) : null}
 
+        {scaled ? (
+          <p className="mt-3 rounded-lg bg-amber-400/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+            {plannedMultiplier === multiplier && plannedPortions ? (
+              <>
+                Scaled for the <strong>{formatQuantity(plannedPortions)}</strong>{" "}
+                {plannedPortions === 1 ? "portion" : "portions"} you have
+                planned — the recipe itself makes {formatQuantity(recipe.servings)}.
+              </>
+            ) : (
+              <>
+                Amounts are scaled to {formatQuantity(multiplier)}× the recipe.
+              </>
+            )}{" "}
+            <button
+              onClick={() => setMultiplier(1)}
+              className="underline underline-offset-2"
+            >
+              Show recipe amounts
+            </button>
+          </p>
+        ) : null}
+
         <div className="mt-4 flex flex-col gap-5">
           {groups.map((group, gi) => (
             <div key={gi}>
@@ -136,7 +179,11 @@ export function RecipeView({ recipe }: { recipe: RecipeWithIngredients }) {
                   <li key={ing.id} className="flex gap-2 text-[15px] leading-snug">
                     <span>
                       {formatAmount(ing, multiplier, unitMode) ? (
-                        <strong className="font-semibold">
+                        <strong
+                          className={`font-semibold ${
+                            scaled ? "text-amber-600 dark:text-amber-400" : ""
+                          }`}
+                        >
                           {formatAmount(ing, multiplier, unitMode)}
                         </strong>
                       ) : null}{" "}

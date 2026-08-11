@@ -8,6 +8,7 @@ import {
   calendarGrid,
   dayLabel,
   fromISODate,
+  startOfWeek,
   isSameDay,
   monthLabel,
   toISODate,
@@ -28,16 +29,20 @@ const HOVER_DELAY_MS = 500;
 function DayPopover({
   day,
   dayMeals,
+  weeklyPortions,
   style,
   onMouseEnter,
   onMouseLeave,
 }: {
   day: Date;
   dayMeals: PlannedMealWithRecipe[];
+  /** `weekStart|recipeId` → portions planned that week, for scaling links. */
+  weeklyPortions: Map<string, number>;
   style: React.CSSProperties;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
 }) {
+  const weekKey = toISODate(startOfWeek(day));
   let total: Macros = ZERO_MACROS;
   let missing = 0;
   for (const meal of dayMeals) {
@@ -61,7 +66,10 @@ function DayPopover({
         {dayMeals.map((meal) => (
           <li key={meal.id}>
             <Link
-              href={`/recipes/${meal.recipe_id}`}
+              href={`/recipes/${meal.recipe_id}?portions=${
+                weeklyPortions.get(`${weekKey}|${meal.recipe_id}`) ??
+                meal.servings
+              }`}
               className="block rounded-lg px-2 py-1.5 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
             >
               <span
@@ -181,6 +189,14 @@ export function CalendarView({
   }
   for (const list of byDate.values()) {
     list.sort((a, b) => SLOT_ORDER[a.meal_slot] - SLOT_ORDER[b.meal_slot]);
+  }
+
+  // A batch is cooked once per week, so a link out of the calendar should
+  // scale to that week's total for the recipe rather than one day's portion.
+  const weeklyPortions = new Map<string, number>();
+  for (const meal of meals) {
+    const key = `${toISODate(startOfWeek(fromISODate(meal.planned_on)))}|${meal.recipe_id}`;
+    weeklyPortions.set(key, (weeklyPortions.get(key) ?? 0) + meal.servings);
   }
 
   const prev = new Date(year, monthIdx - 1, 1);
@@ -305,6 +321,7 @@ export function CalendarView({
             <DayPopover
               day={fromISODate(hover.iso)}
               dayMeals={byDate.get(hover.iso) ?? []}
+              weeklyPortions={weeklyPortions}
               style={hover.style}
               onMouseEnter={cancelClose}
               onMouseLeave={scheduleClose}
