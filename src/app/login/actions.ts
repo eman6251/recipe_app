@@ -58,6 +58,11 @@ export async function login(formData: FormData) {
   let email = identifier;
 
   if (!identifier.includes("@")) {
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      // A config gap, not a wrong password — saying so avoids sending people
+      // to reset a password that was fine.
+      fail("Signing in by username isn't set up yet — use your email.", next);
+    }
     const resolved = await emailForUsername(identifier.toLowerCase());
     if (!resolved) {
       // Same message either way, so this can't be used to test whether a
