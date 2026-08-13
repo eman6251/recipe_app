@@ -1,5 +1,5 @@
 import { ChefHat } from "lucide-react";
-import { login, signup } from "./actions";
+import { LoginForm } from "./login-form";
 
 export default async function LoginPage({
   searchParams,
@@ -30,43 +30,7 @@ export default async function LoginPage({
           </p>
         ) : null}
 
-        <form className="flex flex-col gap-4 rounded-xl border border-black/10 bg-surface p-6 dark:border-white/10">
-          <input type="hidden" name="next" value={next ?? "/"} />
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium">Email</span>
-            <input
-              name="email"
-              type="email"
-              required
-              autoComplete="email"
-              className="rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-white/15"
-            />
-          </label>
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium">Password</span>
-            <input
-              name="password"
-              type="password"
-              required
-              minLength={8}
-              autoComplete="current-password"
-              className="rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-white/15"
-            />
-          </label>
-
-          <button
-            formAction={login}
-            className="mt-2 rounded-lg bg-amber-400 px-4 py-2.5 text-sm font-medium text-zinc-950 transition-colors hover:bg-amber-300"
-          >
-            Sign in
-          </button>
-          <button
-            formAction={signup}
-            className="rounded-lg border border-black/15 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/5"
-          >
-            Create account
-          </button>
-        </form>
+        <LoginForm next={next ?? "/"} />
       </div>
     </div>
   );

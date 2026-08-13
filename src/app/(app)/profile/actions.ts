@@ -1,10 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+
+const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 
 export async function updateProfile(formData: FormData) {
   const displayName = (formData.get("display_name") as string)?.trim();
+  const username = ((formData.get("username") as string) ?? "")
+    .trim()
+    .toLowerCase();
   const shareNew = formData.get("share_new_recipes") === "on";
 
   const supabase = await createClient();
@@ -13,9 +19,33 @@ export async function updateProfile(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) return;
 
+  if (username && !USERNAME_RE.test(username)) {
+    redirect(
+      "/profile?error=" +
+        encodeURIComponent(
+          "Usernames are 3–20 characters, using letters, numbers and underscores.",
+        ),
+    );
+  }
+
+  if (username) {
+    const { data: taken } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("username", username)
+      .neq("id", user.id)
+      .maybeSingle();
+    if (taken) {
+      redirect(
+        "/profile?error=" + encodeURIComponent(`"${username}" is already taken.`),
+      );
+    }
+  }
+
   await supabase
     .from("profiles")
     .update({
+      ...(username ? { username } : {}),
       ...(displayName ? { display_name: displayName } : {}),
       share_new_recipes: shareNew,
     })
@@ -23,6 +53,7 @@ export async function updateProfile(formData: FormData) {
 
   revalidatePath("/profile");
   revalidatePath("/");
+  redirect("/profile?message=" + encodeURIComponent("Profile saved."));
 }
 
 /** Records an avatar already uploaded to storage by the browser. */

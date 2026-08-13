@@ -6,7 +6,12 @@ import { AvatarUpload } from "./avatar-upload";
 const inputClass =
   "rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-white/15";
 
-export default async function ProfilePage() {
+export default async function ProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; message?: string }>;
+}) {
+  const { error, message } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -14,7 +19,7 @@ export default async function ProfilePage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name, avatar_url, share_new_recipes")
+    .select("username, display_name, avatar_url, share_new_recipes")
     .eq("id", user?.id ?? "")
     .maybeSingle();
 
@@ -37,7 +42,33 @@ export default async function ProfilePage() {
       <section className="flex max-w-xl flex-col gap-6 rounded-xl border border-black/10 bg-surface p-6 dark:border-white/10">
         <AvatarUpload avatarUrl={profile?.avatar_url ?? null} />
 
+        {error ? (
+          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-400">
+            {error}
+          </p>
+        ) : null}
+        {message ? (
+          <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-amber-950 dark:text-amber-400">
+            {message}
+          </p>
+        ) : null}
+
         <form action={updateProfile} className="flex flex-col gap-5">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium">Username</span>
+            <input
+              name="username"
+              defaultValue={profile?.username ?? ""}
+              required
+              pattern="[a-zA-Z0-9_]{3,20}"
+              className={inputClass}
+            />
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+              Letters, numbers and underscores. You can sign in with this
+              instead of your email.
+            </span>
+          </label>
+
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium">Display name</span>
             <input
@@ -48,7 +79,7 @@ export default async function ProfilePage() {
               className={inputClass}
             />
             <span className="text-xs text-zinc-500 dark:text-zinc-400">
-              Shown as the author on recipes you share.
+              Shown as the author on recipes you share. Your email never is.
             </span>
           </label>
 
