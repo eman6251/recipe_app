@@ -50,6 +50,21 @@ export async function addPlannedMeal(input: {
   return {};
 }
 
+/** Move a planned portion to another day, e.g. around a night out. */
+export async function movePlannedMeal(id: string, plannedOn: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(plannedOn)) return { error: "Bad date." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("planned_meals")
+    .update({ planned_on: plannedOn })
+    .eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePlanner();
+  return {};
+}
+
 export async function deletePlannedMeal(id: string) {
   const supabase = await createClient();
   await supabase.from("planned_meals").delete().eq("id", id);

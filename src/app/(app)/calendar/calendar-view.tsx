@@ -17,7 +17,7 @@ import {
 import { macrosForServings, sumMacros, ZERO_MACROS } from "@/lib/macros";
 import type { Macros } from "@/lib/types";
 import { MealDialog, SLOT_ORDER, SLOT_STYLES } from "@/components/meal-dialog";
-import { deletePlannedMeal } from "./actions";
+import { deletePlannedMeal, movePlannedMeal } from "./actions";
 import type {
   PlannedMealWithRecipe,
   RecipeOption,
@@ -129,6 +129,10 @@ export function CalendarView({
     iso: string;
     style: React.CSSProperties;
   } | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dropDate, setDropDate] = useState<string | null>(null);
+  /** mealId → the day it was dragged to, applied before the write lands. */
+  const [moved, setMoved] = useState<Record<string, string>>({});
   const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [, startTransition] = useTransition();
@@ -181,11 +185,15 @@ export function CalendarView({
   const weeks = calendarGrid(year, monthIdx);
   const today = new Date();
 
+  const dateOf = (meal: PlannedMealWithRecipe) =>
+    moved[meal.id] ?? meal.planned_on;
+
   const byDate = new Map<string, PlannedMealWithRecipe[]>();
   for (const meal of meals) {
-    const list = byDate.get(meal.planned_on) ?? [];
+    const iso = dateOf(meal);
+    const list = byDate.get(iso) ?? [];
     list.push(meal);
-    byDate.set(meal.planned_on, list);
+    byDate.set(iso, list);
   }
   for (const list of byDate.values()) {
     list.sort((a, b) => SLOT_ORDER[a.meal_slot] - SLOT_ORDER[b.meal_slot]);
@@ -195,7 +203,7 @@ export function CalendarView({
   // scale to that week's total for the recipe rather than one day's portion.
   const weeklyPortions = new Map<string, number>();
   for (const meal of meals) {
-    const key = `${toISODate(startOfWeek(fromISODate(meal.planned_on)))}|${meal.recipe_id}`;
+    const key = `${toISODate(startOfWeek(fromISODate(dateOf(meal))))}|${meal.recipe_id}`;
     weeklyPortions.set(key, (weeklyPortions.get(key) ?? 0) + meal.servings);
   }
 
@@ -260,13 +268,43 @@ export function CalendarView({
                   <div
                     key={iso}
                     onMouseEnter={(e) => {
-                      if (dayMeals.length > 0)
+                      // A popover appearing mid-drag would cover the target.
+                      if (!dragId && dayMeals.length > 0)
                         openAfterDelay(iso, e.currentTarget);
                     }}
                     onMouseLeave={scheduleClose}
-                    className={`group relative min-h-24 border-r border-black/5 p-1.5 last:border-r-0 dark:border-white/5 ${
+                    onDragOver={(e) => {
+                      if (!dragId) return;
+                      e.preventDefault(); // required for the drop to fire
+                      setDropDate(iso);
+                    }}
+                    onDragLeave={() =>
+                      setDropDate((d) => (d === iso ? null : d))
+                    }
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const id = e.dataTransfer.getData("text/plain") || dragId;
+                      setDropDate(null);
+                      setDragId(null);
+                      if (!id) return;
+                      const meal = meals.find((m) => m.id === id);
+                      if (!meal || dateOf(meal) === iso) return;
+                      setMoved((prev) => ({ ...prev, [id]: iso }));
+                      startTransition(async () => {
+                        const result = await movePlannedMeal(id, iso);
+                        // Put it back if the write failed.
+                        if (result?.error) {
+                          setMoved((prev) => {
+                            const next = { ...prev };
+                            delete next[id];
+                            return next;
+                          });
+                        }
+                      });
+                    }}
+                    className={`group relative min-h-24 border-r border-black/5 p-1.5 transition-colors last:border-r-0 dark:border-white/5 ${
                       inMonth ? "" : "opacity-40"
-                    }`}
+                    } ${dropDate === iso ? "bg-amber-400/15" : ""}`}
                   >
                     <div className="flex items-center justify-between">
                       <span
@@ -291,7 +329,22 @@ export function CalendarView({
                       {dayMeals.map((meal) => (
                         <li
                           key={meal.id}
-                          className={`group/meal flex items-center gap-1 rounded px-1.5 py-0.5 text-xs leading-tight ${SLOT_STYLES[meal.meal_slot]} ${meal.cooked ? "opacity-50" : ""}`}
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData("text/plain", meal.id);
+                            e.dataTransfer.effectAllowed = "move";
+                            setDragId(meal.id);
+                            // Cancel any pending popover so it can't open
+                            // over the day you're dragging toward.
+                            if (openTimer.current) clearTimeout(openTimer.current);
+                            setHover(null);
+                          }}
+                          onDragEnd={() => {
+                            setDragId(null);
+                            setDropDate(null);
+                          }}
+                          title="Drag to another day"
+                          className={`group/meal flex cursor-grab items-center gap-1 rounded px-1.5 py-0.5 text-xs leading-tight active:cursor-grabbing ${SLOT_STYLES[meal.meal_slot]} ${meal.cooked ? "opacity-50" : ""} ${dragId === meal.id ? "opacity-40" : ""}`}
                         >
                           <span className="truncate">{meal.recipes.title}</span>
                           <button
