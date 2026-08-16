@@ -36,7 +36,9 @@ export async function listPlannedMeals(
 export type PlannedMealWithFullRecipe = {
   id: string;
   recipe_id: string;
+  planned_on: string;
   servings: number;
+  cooked: boolean;
   recipes: {
     title: string;
     servings: number;
@@ -52,6 +54,10 @@ export type PlannedMealWithFullRecipe = {
 /**
  * Planned meals in [from, to] with every ingredient of the recipe attached
  * (heavier than listPlannedMeals — only the shopping list needs this).
+ *
+ * The shopping list asks for a window wider than the week it's building, so
+ * it can see whether a run of portions started before the week (already
+ * cooked, already shopped for) or spills past the end of it.
  */
 export async function listPlannedMealsWithIngredients(
   from: string,
@@ -61,10 +67,11 @@ export async function listPlannedMealsWithIngredients(
   const { data, error } = await supabase
     .from("planned_meals")
     .select(
-      "id, recipe_id, servings, recipes (title, servings, recipe_ingredients (item, quantity, unit, grams))",
+      "id, recipe_id, planned_on, servings, cooked, recipes (title, servings, recipe_ingredients (item, quantity, unit, grams))",
     )
     .gte("planned_on", from)
-    .lte("planned_on", to);
+    .lte("planned_on", to)
+    .order("planned_on");
 
   if (error) throw new Error(`Failed to load meal plan: ${error.message}`);
   return (data ?? []) as unknown as PlannedMealWithFullRecipe[];

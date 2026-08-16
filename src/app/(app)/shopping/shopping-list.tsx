@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
+  ChefHat,
   ChevronLeft,
   ChevronRight,
   RotateCcw,
@@ -15,6 +16,14 @@ function weekRangeLabel(weekStart: Date): string {
   const fmt = (d: Date) =>
     d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   return `${fmt(weekStart)} – ${fmt(addDays(weekStart, 6))}`;
+}
+
+function shortDate(iso: string): string {
+  return fromISODate(iso).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 /** Persist checked items per-week in localStorage — no server round trip needed. */
@@ -55,11 +64,13 @@ export function ShoppingList({
   mealCount,
   toBuy,
   covered,
+  carriedOver,
 }: {
   weekStart: string; // YYYY-MM-DD
   mealCount: number;
   toBuy: ShoppingLine[];
   covered: ShoppingLine[];
+  carriedOver: { title: string; cookedOn: string; portions: number }[];
 }) {
   const start = fromISODate(weekStart);
   const prevWeekStart = toISODate(addDays(start, -7));
@@ -67,6 +78,15 @@ export function ShoppingList({
 
   const { checked, toggle, reset } = useCheckedItems(`shopping-checked:${weekStart}`);
   const remaining = toBuy.filter((l) => !checked.has(l.key)).length;
+
+  // Ticked items sink to the bottom, so what's left to find is always at the
+  // top of the list instead of scattered through it. Stable within each half,
+  // which keeps the alphabetical order the server sent.
+  const ordered = useMemo(() => {
+    const todo = toBuy.filter((l) => !checked.has(l.key));
+    const done = toBuy.filter((l) => checked.has(l.key));
+    return [...todo, ...done];
+  }, [toBuy, checked]);
 
   return (
     <>
@@ -96,6 +116,26 @@ export function ShoppingList({
         </div>
       </div>
 
+      {carriedOver.length > 0 ? (
+        <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-black/10 bg-surface px-4 py-3 text-sm dark:border-white/10">
+          <ChefHat className="mt-0.5 h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
+          <p className="text-zinc-600 dark:text-zinc-400">
+            Already cooked, so not on this list:{" "}
+            {carriedOver.map((b, i) => (
+              <span key={`${b.title}-${b.cookedOn}`}>
+                {i > 0 ? ", " : ""}
+                <span className="font-medium text-foreground">{b.title}</span>{" "}
+                <span className="whitespace-nowrap">
+                  ({b.portions} {b.portions === 1 ? "portion" : "portions"},{" "}
+                  {shortDate(b.cookedOn)})
+                </span>
+              </span>
+            ))}
+            .
+          </p>
+        </div>
+      ) : null}
+
       {mealCount === 0 ? (
         <div className="rounded-xl border border-dashed border-black/15 bg-surface/60 p-10 text-center dark:border-white/15">
           <p className="font-medium">Nothing planned this week</p>
@@ -113,7 +153,9 @@ export function ShoppingList({
         <div className="rounded-xl border border-dashed border-black/15 bg-surface/60 p-10 text-center dark:border-white/15">
           <p className="font-medium">Nothing to buy</p>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            Everything this week is covered by your pantry staples.
+            {carriedOver.length > 0
+              ? "Everything planned this week is already cooked or covered by your pantry staples."
+              : "Everything this week is covered by your pantry staples."}
           </p>
         </div>
       ) : (
@@ -137,7 +179,7 @@ export function ShoppingList({
           </div>
 
           <ul className="flex flex-col gap-1">
-            {toBuy.map((line) => {
+            {ordered.map((line) => {
               const isChecked = checked.has(line.key);
               return (
                 <li key={line.key}>

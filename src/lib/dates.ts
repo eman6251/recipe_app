@@ -1,4 +1,4 @@
-/** Local-timezone date helpers for the meal planner. Weeks start Monday. */
+/** Local-timezone date helpers for the meal planner. Weeks start Sunday. */
 
 export function toISODate(d: Date): string {
   const y = d.getFullYear();
@@ -26,6 +26,12 @@ export function addDays(d: Date, n: number): Date {
 export function startOfWeek(d: Date): Date {
   const out = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   return addDays(out, -out.getDay()); // getDay(): Sun=0 … Sat=6
+}
+
+/** Whole days from a to b. Rounded, so a DST shift can't land on 0.96. */
+export function daysBetween(a: string, b: string): number {
+  const ms = fromISODate(b).getTime() - fromISODate(a).getTime();
+  return Math.round(ms / 86_400_000);
 }
 
 export function isSameDay(a: Date, b: Date): boolean {

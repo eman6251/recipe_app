@@ -22,12 +22,23 @@ export default async function ShoppingPage({
   const from = toISODate(weekStart);
   const to = toISODate(addDays(weekStart, 6));
 
+  // Look a fortnight either side so a run of portions can be traced back to
+  // the day it was cooked, even when that day sits in the previous week.
   const [planned, pantry] = await Promise.all([
-    listPlannedMealsWithIngredients(from, to),
+    listPlannedMealsWithIngredients(
+      toISODate(addDays(weekStart, -14)),
+      toISODate(addDays(weekStart, 20)),
+    ),
     listPantryItems(),
   ]);
 
-  const ingredients = flattenPlannedMeals(planned);
+  const { ingredients, carriedOver } = flattenPlannedMeals(planned, {
+    from,
+    to,
+  });
+  const mealCount = planned.filter(
+    (m) => m.planned_on >= from && m.planned_on <= to,
+  ).length;
   // Merge names for the same product ("scallions" + "green onions") so their
   // quantities add up into one line instead of listing separately.
   const aliases = await resolveIngredientAliases(
@@ -42,21 +53,27 @@ export default async function ShoppingPage({
         description="Generated from your planned meals, minus pantry staples."
         info={
           <>
-            Built from every meal planned for the week, scaled to the portions
-            you set, with quantities added together. Names for the same product
-            are merged, so &ldquo;scallions&rdquo; from one recipe and
-            &ldquo;green onions&rdquo; from another become one line. Anything
-            in your <strong>pantry</strong> is left off unless the week would
-            run you out. Check items off as you shop — ticks are remembered per
-            week on this device.
+            Built from what you&apos;ll <strong>cook</strong> this week, scaled
+            to the portions you set — plan 7 portions of a 14-sandwich recipe
+            and it buys half the ingredients. A batch counts on the first day
+            it appears on the calendar, so meals you cooked last week and are
+            still eating don&apos;t get shopped for twice, and a batch cooked
+            Saturday is bought in full even though you eat most of it next
+            week. Names for the same product are merged, so
+            &ldquo;scallions&rdquo; from one recipe and &ldquo;green
+            onions&rdquo; from another become one line. Anything in your{" "}
+            <strong>pantry</strong> is left off unless the week would run you
+            out. Check items off as you shop — ticks are remembered per week on
+            this device.
           </>
         }
       />
       <ShoppingList
         weekStart={from}
-        mealCount={planned.length}
+        mealCount={mealCount}
         toBuy={toBuy}
         covered={covered}
+        carriedOver={carriedOver}
       />
     </>
   );

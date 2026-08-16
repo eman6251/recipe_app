@@ -4,6 +4,7 @@
  * would run a staple down past its restock point.
  */
 
+import { daysBetween } from "@/lib/dates";
 import { canonicalKey, covers } from "@/lib/fridge";
 import { packagingTare } from "@/lib/pantry";
 import { formatQuantity } from "@/lib/quantity";
@@ -37,39 +38,138 @@ export type ShoppingLine = {
 };
 
 /**
- * Expand a week's planned meals into ingredient lines.
+ * How long one cook feeds you. Portions of a recipe within this many days of
+ * the first one are that same batch; a portion further out is a fresh cook
+ * that needs its own ingredients.
  *
- * Aggregated per recipe rather than per planned day: you shop for a recipe
- * once, however many days you've spread its portions across. Scaling each
- * day's portion separately both over-counted (a recipe planned across more
- * days kept adding ingredients) and under-counted (a single portion of a
- * four-serving recipe bought a quarter of the ingredients, when you'd
- * actually cook the whole thing).
+ * Measured from the batch's start rather than portion to portion, so dragging
+ * a meal past a couple of nights out doesn't split one cook into two — the
+ * holes in a week are the whole reason drag-and-drop exists. The cost is that
+ * cooking the same recipe twice inside a week reads as one batch; a week is
+ * about as long as prepped food keeps, so that's the rarer case.
+ */
+const BATCH_SPAN_DAYS = 6;
+
+/** One cook: the portions of a recipe eaten across consecutive-ish days. */
+export type MealBatch = {
+  recipe: NonNullable<PlannedMealWithFullRecipe["recipes"]>;
+  /** The day it's assumed to have been cooked — its first planned portion. */
+  cookedOn: string;
+  /** Every portion in the batch, including any falling outside the week. */
+  portions: number;
+  /** Ticked off as cooked on the calendar or week view. */
+  cooked: boolean;
+};
+
+/**
+ * Group planned portions into batches, one per trip to the stove.
+ *
+ * Meal prep cooks once and eats across days, so ingredients belong to the
+ * cook, not to each plate. Portions of the same recipe on consecutive-ish
+ * days are one batch; a longer gap starts another.
+ */
+export function groupIntoBatches(
+  planned: PlannedMealWithFullRecipe[],
+): MealBatch[] {
+  const byRecipe = new Map<string, PlannedMealWithFullRecipe[]>();
+  for (const meal of planned) {
+    if (!meal.recipes) continue;
+    const list = byRecipe.get(meal.recipe_id) ?? [];
+    list.push(meal);
+    byRecipe.set(meal.recipe_id, list);
+  }
+
+  const batches: MealBatch[] = [];
+
+  for (const meals of byRecipe.values()) {
+    const sorted = [...meals].sort((a, b) =>
+      a.planned_on.localeCompare(b.planned_on),
+    );
+
+    let current: MealBatch | null = null;
+
+    for (const meal of sorted) {
+      if (
+        !current ||
+        daysBetween(current.cookedOn, meal.planned_on) > BATCH_SPAN_DAYS
+      ) {
+        current = {
+          recipe: meal.recipes!,
+          cookedOn: meal.planned_on,
+          portions: 0,
+          cooked: false,
+        };
+        batches.push(current);
+      }
+      current.portions += meal.servings || 1;
+      // Cooking is one event for the whole batch, so any portion marked
+      // cooked means the ingredients were already bought.
+      current.cooked ||= meal.cooked;
+    }
+  }
+
+  return batches;
+}
+
+export type FlattenedPlan = {
+  ingredients: ShoppingIngredientInput[];
+  /** Batches left off because they were cooked before the week started. */
+  carriedOver: { title: string; cookedOn: string; portions: number }[];
+};
+
+/**
+ * Expand the batches you'll actually cook this week into ingredient lines.
+ *
+ * A batch's ingredients belong to the week it's cooked in — its first planned
+ * day. Portions eaten this week from a batch cooked last week are leftovers
+ * already sitting in the fridge, so listing their ingredients again just means
+ * crossing them out at the store. The mirror of that: a batch cooked on
+ * Saturday and eaten into next week is bought in full now.
+ *
+ * Aggregated per batch rather than per planned day. Scaling each day's portion
+ * separately both over-counted (a recipe planned across more days kept adding
+ * ingredients) and under-counted (a single portion of a four-serving recipe
+ * bought a quarter of the ingredients, when you'd actually cook the whole
+ * thing).
  */
 export function flattenPlannedMeals(
   planned: PlannedMealWithFullRecipe[],
-): ShoppingIngredientInput[] {
-  const byRecipe = new Map<
-    string,
-    { recipe: NonNullable<PlannedMealWithFullRecipe["recipes"]>; portions: number }
-  >();
-
-  for (const meal of planned) {
-    const recipe = meal.recipes;
-    if (!recipe) continue;
-    const existing = byRecipe.get(meal.recipe_id);
-    if (existing) existing.portions += meal.servings || 1;
-    else byRecipe.set(meal.recipe_id, { recipe, portions: meal.servings || 1 });
-  }
-
+  /** The week being shopped for; portions outside it only inform batching. */
+  week?: { from: string; to: string },
+): FlattenedPlan {
   const out: ShoppingIngredientInput[] = [];
+  const carriedOver: FlattenedPlan["carriedOver"] = [];
 
-  for (const { recipe, portions } of byRecipe.values()) {
+  for (const batch of groupIntoBatches(planned)) {
+    if (week) {
+      // Cooked after the week ends — that's next week's shop.
+      if (batch.cookedOn > week.to) continue;
+      if (batch.cookedOn < week.from) {
+        carriedOver.push({
+          title: batch.recipe.title,
+          cookedOn: batch.cookedOn,
+          portions: batch.portions,
+        });
+        continue;
+      }
+      if (batch.cooked) {
+        carriedOver.push({
+          title: batch.recipe.title,
+          cookedOn: batch.cookedOn,
+          portions: batch.portions,
+        });
+        continue;
+      }
+    }
+
+    const { recipe } = batch;
     const baseServings = recipe.servings || 1;
-    // Never below a single batch — you can't cook part of a recipe, so
-    // planning fewer portions than it yields still needs all its ingredients.
-    const scale = Math.max(1, portions / baseServings);
-    const title = scale > 1 ? `${recipe.title} ×${formatQuantity(scale)}` : recipe.title;
+    // Scales both ways: half the portions of a 14-sandwich recipe buys half
+    // the ingredients. The planned portion count is the whole instruction —
+    // if you wanted the full batch you'd have planned the full batch.
+    const scale = batch.portions / baseServings;
+    const title =
+      scale !== 1 ? `${recipe.title} ×${formatQuantity(scale)}` : recipe.title;
 
     for (const ing of recipe.recipe_ingredients) {
       if (!ing.item?.trim()) continue;
@@ -83,7 +183,7 @@ export function flattenPlannedMeals(
     }
   }
 
-  return out;
+  return { ingredients: out, carriedOver };
 }
 
 /** Merge same-unit quantity fragments; different units are shown side by side. */
