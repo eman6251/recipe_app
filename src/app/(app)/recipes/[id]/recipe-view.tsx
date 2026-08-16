@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { formatQuantity } from "@/lib/quantity";
 import type { RecipeWithIngredients } from "@/lib/types";
 
-const MULTIPLIERS = [0.5, 1, 1.5, 2, 3];
+const MULTIPLIERS = [0.25, 0.5, 0.75, 1, 1.5, 2, 3];
+const STEP = 0.25;
 
 const UNIT_MODES = [
   { id: "original", label: "Original" },
@@ -98,14 +99,21 @@ export function RecipeView({
     <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
       {/* Ingredients column */}
       <section className="rounded-xl border border-black/10 bg-surface p-6 dark:border-white/10">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold">Ingredients</h2>
-          <div className="flex items-center rounded-lg border border-black/10 p-0.5 dark:border-white/10">
+        <h2 className="text-lg font-semibold">Ingredients</h2>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+          {formatQuantity(scaledServings)}{" "}
+          {scaledServings === 1 ? "serving" : "servings"}
+        </p>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="text-xs text-zinc-500 dark:text-zinc-400">Scale</span>
+
+          <div className="flex flex-wrap items-center rounded-lg border border-black/10 p-0.5 dark:border-white/10">
             {multiplierOptions.map((m) => (
               <button
                 key={m}
                 onClick={() => setMultiplier(m)}
-                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                className={`rounded-md px-2 py-1 text-xs font-medium transition-colors ${
                   multiplier === m
                     ? "bg-amber-400 text-zinc-950"
                     : "text-zinc-600 hover:bg-black/5 dark:text-zinc-400 dark:hover:bg-white/5"
@@ -115,11 +123,33 @@ export function RecipeView({
               </button>
             ))}
           </div>
+
+          {/* Quarter steps for anything the presets don't cover — 3½×, 5×. */}
+          <div className="flex items-center rounded-lg border border-black/10 dark:border-white/10">
+            <button
+              onClick={() =>
+                setMultiplier((m) => Math.max(STEP, Math.round((m - STEP) * 100) / 100))
+              }
+              disabled={multiplier <= STEP}
+              aria-label="Scale down"
+              className="px-2 py-1 text-sm text-zinc-600 transition-colors hover:bg-black/5 disabled:opacity-40 dark:text-zinc-400 dark:hover:bg-white/5"
+            >
+              −
+            </button>
+            <span className="min-w-10 px-1 text-center text-xs font-medium tabular-nums">
+              {formatQuantity(multiplier)}×
+            </span>
+            <button
+              onClick={() =>
+                setMultiplier((m) => Math.min(20, Math.round((m + STEP) * 100) / 100))
+              }
+              aria-label="Scale up"
+              className="px-2 py-1 text-sm text-zinc-600 transition-colors hover:bg-black/5 dark:text-zinc-400 dark:hover:bg-white/5"
+            >
+              +
+            </button>
+          </div>
         </div>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          {formatQuantity(scaledServings)}{" "}
-          {scaledServings === 1 ? "serving" : "servings"}
-        </p>
 
         {anyGrams ? (
           <div className="mt-3 flex items-center gap-2">
