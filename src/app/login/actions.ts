@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { validatePassword } from "@/lib/password";
 
 /** Only same-site paths, so a crafted ?next= can't bounce users off-site. */
 function safeNext(raw: FormDataEntryValue | null): string {
@@ -86,6 +87,12 @@ export async function signup(formData: FormData) {
   const username = ((formData.get("username") as string) ?? "")
     .trim()
     .toLowerCase();
+  const password = (formData.get("password") as string) ?? "";
+
+  // Checked here as well as in the browser — the form is only a courtesy,
+  // and this action is reachable without it.
+  const weak = validatePassword(password);
+  if (weak) fail(weak, next);
 
   if (!USERNAME_RE.test(username)) {
     fail(
@@ -104,7 +111,7 @@ export async function signup(formData: FormData) {
 
   const { data, error } = await supabase.auth.signUp({
     email,
-    password: (formData.get("password") as string) ?? "",
+    password,
     options: { data: { username } },
   });
 

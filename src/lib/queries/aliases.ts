@@ -5,7 +5,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { BUILTIN_SYNONYMS } from "@/lib/synonyms";
-import { logAiUsage } from "@/lib/ai-usage";
+import { checkAiBudget, logAiUsage } from "@/lib/ai-usage";
 
 const AliasChoices = z.object({
   names: z.array(
@@ -64,6 +64,13 @@ export async function resolveIngredientAliases(
 
   const unknown = distinct.filter((k) => !resolved.has(k));
   if (unknown.length === 0 || !process.env.ANTHROPIC_API_KEY) {
+    for (const key of unknown) resolved.set(key, key);
+    return resolved;
+  }
+
+  // Soft-fails, unlike the importer: this runs from opening the shopping
+  // list, so an over-budget user gets an unmerged list rather than an error.
+  if (!(await checkAiBudget()).allowed) {
     for (const key of unknown) resolved.set(key, key);
     return resolved;
   }

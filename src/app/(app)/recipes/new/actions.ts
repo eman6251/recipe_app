@@ -3,7 +3,10 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
-import { logAiUsage } from "@/lib/ai-usage";
+import { checkAiBudget, logAiUsage } from "@/lib/ai-usage";
+
+/** Generous for a caption, far short of anything that would cost real money. */
+const MAX_CAPTION_CHARS = 20_000;
 
 // What Claude extracts from a pasted caption. Mirrors RecipePayload plus
 // per-ingredient gram estimates (feeds the USDA macro phase later).
@@ -149,6 +152,16 @@ export async function parseCaption(caption: string): Promise<ParseResult> {
   if (text.length < 20) {
     return { error: "That looks too short to be a recipe — paste the full caption." };
   }
+  // Input tokens are billed, so a pasted novel is a pasted bill. No real
+  // caption comes close to this.
+  if (text.length > MAX_CAPTION_CHARS) {
+    return {
+      error: `That's longer than a recipe caption (${text.length.toLocaleString()} characters). Paste just the recipe.`,
+    };
+  }
+
+  const budget = await checkAiBudget();
+  if (!budget.allowed) return { error: budget.error! };
 
   const client = new Anthropic();
 

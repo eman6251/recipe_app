@@ -5,7 +5,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { logAiUsage } from "@/lib/ai-usage";
+import { checkAiBudget, logAiUsage } from "@/lib/ai-usage";
 import { getRecipe } from "@/lib/queries/recipes";
 import {
   searchUsdaCandidates,
@@ -177,6 +177,9 @@ export async function computeMacros(
         "No USDA_API_KEY set. Get a free key at fdc.nal.usda.gov/api-key-signup.html, add it to .env.local, and restart the dev server.",
     };
   }
+
+  const budget = await checkAiBudget();
+  if (!budget.allowed) return { ok: false, error: budget.error! };
 
   const recipe = await getRecipe(recipeId);
   if (!recipe) return { ok: false, error: "Recipe not found." };

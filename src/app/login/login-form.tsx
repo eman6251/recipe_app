@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { login, signup } from "./actions";
+import { MIN_PASSWORD_LENGTH, PASSWORD_HINT } from "@/lib/password";
 
 const inputClass =
   "rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-white/15";
@@ -90,10 +91,15 @@ export function LoginForm({ next }: { next: string }) {
             name="password"
             type="password"
             required
-            minLength={8}
+            minLength={signingUp ? MIN_PASSWORD_LENGTH : undefined}
             autoComplete={signingUp ? "new-password" : "current-password"}
             className={inputClass}
           />
+          {signingUp ? (
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+              {PASSWORD_HINT}
+            </span>
+          ) : null}
         </label>
 
         <button
