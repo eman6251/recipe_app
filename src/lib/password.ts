@@ -15,8 +15,17 @@ export const MIN_PASSWORD_LENGTH = 12;
 export const PASSWORD_HINT =
   "At least 12 characters, including a number and a symbol.";
 
-/** Null when the password is acceptable, otherwise the reason it isn't. */
-export function validatePassword(password: string): string | null {
+/**
+ * Null when the password is acceptable, otherwise the reason it isn't.
+ *
+ * Shape only — whether the password has also been breached is a separate,
+ * asynchronous question (see password-breach.ts).
+ */
+export function validatePassword(
+  password: string,
+  /** Identifiers the password shouldn't just repeat back. */
+  context: { username?: string; email?: string } = {},
+): string | null {
   if (password.length < MIN_PASSWORD_LENGTH) {
     return `Passwords need at least ${MIN_PASSWORD_LENGTH} characters.`;
   }
@@ -27,5 +36,16 @@ export function validatePassword(password: string): string | null {
   if (!/[^\p{L}\p{N}\s]/u.test(password)) {
     return "Passwords need at least one symbol, like ! ? # or -.";
   }
+
+  // A password built out of the username is public knowledge with punctuation
+  // on the end — and the username is on every recipe you share.
+  const lower = password.toLowerCase();
+  const parts = [context.username, context.email?.split("@")[0]]
+    .filter((p): p is string => !!p && p.length >= 4)
+    .map((p) => p.toLowerCase());
+  if (parts.some((p) => lower.includes(p))) {
+    return "Passwords can't contain your username or email.";
+  }
+
   return null;
 }

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { validatePassword } from "@/lib/password";
+import { isBreachedPassword } from "@/lib/password-breach";
 
 /** Only same-site paths, so a crafted ?next= can't bounce users off-site. */
 function safeNext(raw: FormDataEntryValue | null): string {
@@ -91,8 +92,14 @@ export async function signup(formData: FormData) {
 
   // Checked here as well as in the browser — the form is only a courtesy,
   // and this action is reachable without it.
-  const weak = validatePassword(password);
+  const weak = validatePassword(password, { username, email });
   if (weak) fail(weak, next);
+  if (await isBreachedPassword(password)) {
+    fail(
+      "That password has turned up in a known data breach — attackers try those first. Please pick another.",
+      next,
+    );
+  }
 
   if (!USERNAME_RE.test(username)) {
     fail(
