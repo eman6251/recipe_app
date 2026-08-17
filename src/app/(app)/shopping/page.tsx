@@ -73,7 +73,7 @@ export default async function ShoppingPage({
         mealCount={mealCount}
         toBuy={toBuy}
         covered={covered}
-        carriedOver={carriedOver}
+        carriedOverCount={carriedOver.length}
       />
     </>
   );

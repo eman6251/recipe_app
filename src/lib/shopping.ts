@@ -55,6 +55,8 @@ export type MealBatch = {
   recipe: NonNullable<PlannedMealWithFullRecipe["recipes"]>;
   /** The day it's assumed to have been cooked — its first planned portion. */
   cookedOn: string;
+  /** The last day a portion of it is eaten. */
+  lastDay: string;
   /** Every portion in the batch, including any falling outside the week. */
   portions: number;
   /** Ticked off as cooked on the calendar or week view. */
@@ -96,11 +98,13 @@ export function groupIntoBatches(
         current = {
           recipe: meal.recipes!,
           cookedOn: meal.planned_on,
+          lastDay: meal.planned_on,
           portions: 0,
           cooked: false,
         };
         batches.push(current);
       }
+      current.lastDay = meal.planned_on; // sorted, so the latest so far
       current.portions += meal.servings || 1;
       // Cooking is one event for the whole batch, so any portion marked
       // cooked means the ingredients were already bought.
@@ -144,20 +148,18 @@ export function flattenPlannedMeals(
     if (week) {
       // Cooked after the week ends — that's next week's shop.
       if (batch.cookedOn > week.to) continue;
-      if (batch.cookedOn < week.from) {
-        carriedOver.push({
-          title: batch.recipe.title,
-          cookedOn: batch.cookedOn,
-          portions: batch.portions,
-        });
-        continue;
-      }
-      if (batch.cooked) {
-        carriedOver.push({
-          title: batch.recipe.title,
-          cookedOn: batch.cookedOn,
-          portions: batch.portions,
-        });
+
+      const alreadyCooked = batch.cookedOn < week.from || batch.cooked;
+      if (alreadyCooked) {
+        // Only worth mentioning if you're actually eating it this week; the
+        // window reaches back further than that to find where batches began.
+        if (batch.lastDay >= week.from) {
+          carriedOver.push({
+            title: batch.recipe.title,
+            cookedOn: batch.cookedOn,
+            portions: batch.portions,
+          });
+        }
         continue;
       }
     }
