@@ -6,6 +6,7 @@ import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { validatePassword } from "@/lib/password";
 import { isBreachedPassword } from "@/lib/password-breach";
+import { siteUrl } from "@/lib/site-url";
 
 /** Only same-site paths, so a crafted ?next= can't bounce users off-site. */
 function safeNext(raw: FormDataEntryValue | null): string {
@@ -135,6 +136,34 @@ export async function signup(formData: FormData) {
 
   revalidatePath("/", "layout");
   redirect(next);
+}
+
+/**
+ * Email a password-reset link.
+ *
+ * Always reports the same thing, whether or not that address has an account.
+ * Anything else turns this form into a way to test which of your friends and
+ * family are on the app.
+ */
+export async function requestPasswordReset(formData: FormData) {
+  const email = ((formData.get("email") as string) ?? "").trim();
+  const sent =
+    "If that address has an account, a reset link is on its way. The link is good for one hour.";
+
+  if (!email.includes("@")) {
+    redirect(`/login/forgot?message=${encodeURIComponent(sent)}`);
+  }
+
+  const supabase = await createClient();
+  const origin = await siteUrl();
+
+  // Land on the confirm route, which verifies the token and sets the session
+  // before handing off to the page that takes the new password.
+  await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin}/auth/confirm?next=/reset-password`,
+  });
+
+  redirect(`/login/forgot?message=${encodeURIComponent(sent)}`);
 }
 
 export async function signout() {

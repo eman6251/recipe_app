@@ -86,7 +86,17 @@ export function LoginForm({ next }: { next: string }) {
         )}
 
         <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium">Password</span>
+          <span className="flex items-baseline justify-between gap-2">
+            <span className="text-sm font-medium">Password</span>
+            {signingUp ? null : (
+              <a
+                href="/login/forgot"
+                className="text-xs text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400"
+              >
+                Forgot password?
+              </a>
+            )}
+          </span>
           <input
             name="password"
             type="password"

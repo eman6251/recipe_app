@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { updateProfile } from "./actions";
@@ -111,9 +112,15 @@ export default async function ProfilePage({
           </div>
         </form>
 
-        <p className="border-t border-black/10 pt-4 text-xs text-zinc-500 dark:border-white/10 dark:text-zinc-400">
-          Signed in as {user?.email}
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-black/10 pt-4 text-xs text-zinc-500 dark:border-white/10 dark:text-zinc-400">
+          <span>Signed in as {user?.email}</span>
+          <Link
+            href="/reset-password"
+            className="font-medium text-amber-600 underline-offset-2 hover:underline dark:text-amber-400"
+          >
+            Change password
+          </Link>
+        </div>
       </section>
     </>
   );

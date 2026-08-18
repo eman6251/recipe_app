@@ -64,8 +64,10 @@ export async function updateSession(request: NextRequest) {
     return redirectTo("/login", pathname + request.nextUrl.search);
   }
 
-  // Already signed in? Skip the login page.
-  if (user && pathname.startsWith("/login")) {
+  // Already signed in? Skip the login page — but not the reset request,
+  // which a signed-in user still needs when they've forgotten the password
+  // the change-password form is asking them for.
+  if (user && pathname.startsWith("/login") && pathname !== "/login/forgot") {
     return redirectTo("/");
   }
 
