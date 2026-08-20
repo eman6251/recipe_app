@@ -47,8 +47,9 @@ body {
    * and go flat. min-height keeps it covering a short page too.
    */
   background: var(--canvas);
+  /* 225deg runs the light end into the bottom-left corner. */
   background-image: linear-gradient(
-    170deg,
+    225deg,
     var(--canvas) 0%,
     var(--canvas) 35%,
     var(--canvas-lift) 100%
