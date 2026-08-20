@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ChefHat, Star } from "lucide-react";
 import type { Author, RecipeCard } from "@/lib/queries/discover";
+import { AddFriendButton } from "@/components/friends/add-friend-button";
 
 function Card({ recipe }: { recipe: RecipeCard }) {
   return (
@@ -65,6 +66,7 @@ export function RecipeRow({
       <div className="mb-2 flex items-center justify-between gap-3">
         <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
         {authors && authors.length > 0 ? (
+          <div className="flex items-center gap-2">
           <select
             value={selectedAuthorId ?? ""}
             onChange={(e) => router.push(`/?author=${e.target.value}`)}
@@ -76,6 +78,10 @@ export function RecipeRow({
               </option>
             ))}
           </select>
+          {selectedAuthorId ? (
+            <AddFriendButton userId={selectedAuthorId} />
+          ) : null}
+          </div>
         ) : null}
       </div>
 

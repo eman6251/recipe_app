@@ -15,9 +15,11 @@ import {
   Carrot,
   LogOut,
   UserRound,
+  UsersRound,
   type LucideIcon,
 } from "lucide-react";
 import { signout } from "@/app/login/actions";
+import { FriendsButton } from "@/components/friends/friends-button";
 import { FILTER_GROUPS } from "@/lib/filters";
 import { INGREDIENT_GROUPS } from "@/lib/ingredients";
 
@@ -43,6 +45,8 @@ const MOBILE_ITEMS: MobileItem[] = [
   { href: "/week", label: "This Week", icon: UtensilsCrossed },
   { href: "/shopping", label: "Shopping", icon: ShoppingCart },
   { href: "/pantry", label: "Pantry", icon: Refrigerator, desktopOnly: true },
+  // Desktop opens this as a slide-over from the top bar instead.
+  { href: "/friends", label: "Friends", icon: UsersRound },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -167,9 +171,11 @@ function MegaMenu({
 export function Nav({
   avatarUrl,
   signedIn = true,
+  userId,
 }: {
   avatarUrl?: string | null;
   signedIn?: boolean;
+  userId?: string | null;
 }) {
   const pathname = usePathname();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -241,6 +247,8 @@ export function Nav({
               <BookMarked className="h-4 w-4" />
               Recipe Box
             </Link>
+
+            {userId ? <FriendsButton meId={userId} /> : null}
 
             <Link
               href="/profile"

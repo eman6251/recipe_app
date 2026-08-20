@@ -2,22 +2,31 @@
 
 /*
  * Semantic surfaces:
- *  - canvas: the page background
+ *  - canvas: the page background (a gradient; --canvas is its base tone)
  *  - surface: cards / raised sections / nav
- * Dark mode is seasoned cast iron: a warm charcoal grey, with the surface a
- * shade lighter so cards read as raised. Accents are egg-yolk amber.
+ *  - hairline: the faint amber edge on inputs and cards
+ * Dark mode is seasoned cast iron: a warm charcoal that lifts toward a
+ * lighter grey down the page, so the screen isn't one flat slab. Accents are
+ * egg-yolk amber.
  */
 :root {
   --canvas: #f4f4f3;
+  --canvas-lift: #ffffff;
   --surface: #ffffff;
   --foreground: #1c1b1a;
+  /* Amber at low alpha: reads as warmth on an edge, not as a yellow line. */
+  --hairline: rgb(217 165 62 / 0.22);
+  --hairline-strong: rgb(217 165 62 / 0.45);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --canvas: #1a1a1c;
-    --surface: #252528;
+    --canvas: #171719;
+    --canvas-lift: #2a2a2e;
+    --surface: #232326;
     --foreground: #eceae8;
+    --hairline: rgb(251 191 36 / 0.14);
+    --hairline-strong: rgb(251 191 36 / 0.38);
   }
 }
 
@@ -25,12 +34,52 @@
   --color-canvas: var(--canvas);
   --color-surface: var(--surface);
   --color-foreground: var(--foreground);
+  --color-hairline: var(--hairline);
+  --color-hairline-strong: var(--hairline-strong);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 body {
+  /*
+   * Fixed rather than scrolling, so the gradient belongs to the window and
+   * not to the document — a long recipe would otherwise run off the end of it
+   * and go flat. min-height keeps it covering a short page too.
+   */
   background: var(--canvas);
+  background-image: linear-gradient(
+    170deg,
+    var(--canvas) 0%,
+    var(--canvas) 35%,
+    var(--canvas-lift) 100%
+  );
+  background-attachment: fixed;
+  min-height: 100dvh;
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/*
+ * Warm the neutral borders the app already uses instead of restyling every
+ * component: anything drawn with black/white at low alpha picks up a trace of
+ * amber, which is the "subtle yellow edging" without a yellow box everywhere.
+ */
+.border-black\/10,
+.border-black\/15,
+.dark\:border-white\/10,
+.dark\:border-white\/15 {
+  border-color: var(--hairline);
+}
+
+/* Inputs and cards sit slightly proud of the gradient behind them. */
+input,
+textarea,
+select {
+  border-color: var(--hairline);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--hairline-strong);
 }

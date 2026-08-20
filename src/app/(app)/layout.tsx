@@ -24,7 +24,11 @@ export default async function AppLayout({
 
   return (
     <>
-      <Nav avatarUrl={profile?.avatar_url ?? null} signedIn={!!user} />
+      <Nav
+        avatarUrl={profile?.avatar_url ?? null}
+        signedIn={!!user}
+        userId={user?.id ?? null}
+      />
       {/* Bottom padding clears the mobile tab bar. */}
       <main className="pb-20 md:pb-0">
         <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-6 md:py-8">
