@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { updateProfile } from "./actions";
 import { AvatarUpload } from "./avatar-upload";
+import { ThemePicker } from "@/components/theme-picker";
+import { THEME_COOKIE, isThemeChoice } from "@/lib/theme";
 
 const inputClass =
   "rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-white/15";
@@ -17,6 +20,9 @@ export default async function ProfilePage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const stored = (await cookies()).get(THEME_COOKIE)?.value;
+  const themeChoice = isThemeChoice(stored) ? stored : "system";
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -111,6 +117,15 @@ export default async function ProfilePage({
             </button>
           </div>
         </form>
+
+        <div className="border-t border-black/10 pt-4 dark:border-white/10">
+          <h3 className="text-sm font-medium">Appearance</h3>
+          <p className="mb-2 mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+            Applies straight away and is remembered on this device.
+            &ldquo;System&rdquo; follows your computer&apos;s setting.
+          </p>
+          <ThemePicker initial={themeChoice} />
+        </div>
 
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-black/10 pt-4 text-xs text-zinc-500 dark:border-white/10 dark:text-zinc-400">
           <span>Signed in as {user?.email}</span>

@@ -201,7 +201,7 @@ export function RecipeBrowser({
                     </p>
                   ) : null}
 
-                  <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 pt-3 text-xs text-zinc-500 dark:text-zinc-400">
+                  <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 pt-3 pr-20 text-xs text-zinc-500 dark:text-zinc-400">
                     {totalMinutes > 0 ? (
                       <span className="inline-flex items-center gap-1">
                         <Clock className="h-3.5 w-3.5" />
@@ -220,9 +220,11 @@ export function RecipeBrowser({
 
                   {/* Capped at three: the importer emits meal type, diet and
                       equipment tags, which wrapped to several lines and made
-                      cards in a row wildly different heights. */}
+                      cards in a row wildly different heights. The right
+                      padding on this row and the one above keeps them from
+                      running under the share pill in the corner. */}
                   {recipe.tags.length > 0 ? (
-                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5 pr-20">
                       {recipe.tags.slice(0, 3).map((tag) => (
                         <span
                           key={tag}

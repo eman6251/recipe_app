@@ -1,6 +1,23 @@
 @import "tailwindcss";
 
 /*
+ * Teach the dark: utilities the same three states as the tokens above.
+ * Out of the box they follow prefers-color-scheme alone, so picking light on
+ * a dark laptop would flip the colour tokens and leave every dark:text-… and
+ * dark:border-… still firing — half the app in each theme.
+ */
+@custom-variant dark {
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) & {
+      @slot;
+    }
+  }
+  :root[data-theme="dark"] & {
+    @slot;
+  }
+}
+
+/*
  * Semantic surfaces:
  *  - canvas: the page background (a gradient; --canvas is its base tone)
  *  - surface: cards / raised sections / nav
@@ -19,8 +36,14 @@
   --hairline-strong: rgb(217 165 62 / 0.45);
 }
 
+/*
+ * Three theme states, not two. An explicit choice stamps data-theme on the
+ * root element and wins; with nothing stamped, the OS decides. The
+ * :not([data-theme="light"]) guard is what lets someone on a dark laptop
+ * choose light and have it stick.
+ */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --canvas: #171719;
     --canvas-lift: #2a2a2e;
     --surface: #232326;
@@ -28,6 +51,15 @@
     --hairline: rgb(251 191 36 / 0.14);
     --hairline-strong: rgb(251 191 36 / 0.38);
   }
+}
+
+:root[data-theme="dark"] {
+    --canvas: #171719;
+    --canvas-lift: #2a2a2e;
+    --surface: #232326;
+    --foreground: #eceae8;
+    --hairline: rgb(251 191 36 / 0.14);
+    --hairline-strong: rgb(251 191 36 / 0.38);
 }
 
 @theme inline {

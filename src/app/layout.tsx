@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
+import { THEME_COOKIE, isThemeChoice, themeAttribute } from "@/lib/theme";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,19 +21,28 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#1a1a1c",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f4f4f3" },
+    { media: "(prefers-color-scheme: dark)", color: "#171719" },
+  ],
   width: "device-width",
   initialScale: 1,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Stamped during the server render, so the first paint is already the right
+  // theme. "system" leaves the attribute off and lets the OS media queries win.
+  const stored = (await cookies()).get(THEME_COOKIE)?.value;
+  const theme = themeAttribute(isThemeChoice(stored) ? stored : "system");
+
   return (
     <html
       lang="en"
+      data-theme={theme ?? undefined}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-canvas text-foreground">
