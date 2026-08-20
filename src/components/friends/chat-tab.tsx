@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { ArrowLeft, Send, Users, X } from "lucide-react";
+import { ArrowLeft, LogOut, Send, Users, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
   conversationName,
@@ -11,6 +11,7 @@ import {
 } from "@/lib/friends";
 import {
   createGroup,
+  leaveConversation,
   listMessages,
   markConversationRead,
   sendMessage,
@@ -243,6 +244,7 @@ function Thread({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const latestRef = useRef<string | undefined>(undefined);
 
@@ -326,9 +328,43 @@ function Thread({
         >
           <ArrowLeft className="h-4 w-4" />
         </button>
-        <span className="truncate text-sm font-semibold">
+        <span className="min-w-0 flex-1 truncate text-sm font-semibold">
           {conversationName(conversation)}
         </span>
+        {conversation.is_group ? (
+          leaving ? (
+            <span className="flex shrink-0 items-center gap-1.5">
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                Leave?
+              </span>
+              <button
+                onClick={async () => {
+                  await leaveConversation(conversation.id);
+                  onChanged();
+                  onBack();
+                }}
+                className="rounded-lg bg-red-600 px-2 py-1 text-xs font-medium text-white transition-colors hover:bg-red-500"
+              >
+                Leave
+              </button>
+              <button
+                onClick={() => setLeaving(false)}
+                className="rounded-lg px-2 py-1 text-xs font-medium text-zinc-500 transition-colors hover:bg-black/5 dark:hover:bg-white/10"
+              >
+                Cancel
+              </button>
+            </span>
+          ) : (
+            <button
+              onClick={() => setLeaving(true)}
+              aria-label="Leave group"
+              title="Leave group"
+              className="shrink-0 rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-black/5 hover:text-red-600 dark:hover:bg-white/10 dark:hover:text-red-400"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          )
+        ) : null}
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3">
