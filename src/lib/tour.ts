@@ -9,8 +9,18 @@
  */
 
 export type TourStep = {
-  /** Route this step lives on. The tour navigates there before showing it. */
+  /**
+   * Route this step lives on. The tour navigates there before showing it.
+   * When `needsRecipe` is set this is only the fallback, used when there's no
+   * recipe to open.
+   */
   path: string;
+  /**
+   * Show this step on one of the viewer's own recipes, since some things —
+   * the macro button among them — only exist on a real recipe page and only
+   * for its owner. Falls back to `path` for an empty account.
+   */
+  needsRecipe?: boolean;
   /**
    * data-tour value of the element to point at. Omitted for steps with
    * nothing specific to indicate, which render centred with no arrow.
@@ -38,10 +48,11 @@ export const TOUR_STEPS: TourStep[] = [
   },
   {
     path: "/recipes",
-    target: "page-header",
+    needsRecipe: true,
+    target: "compute-macros",
     title: "Macros come from the ingredients",
-    body: "Open any recipe and compute its macros. Each ingredient is matched against the USDA food database and multiplied by its gram weight, so the numbers stay right when you scale the recipe up or down.",
-    tip: "Matching isn't perfect yet — check the per-ingredient list if a number looks off.",
+    body: "This button matches every ingredient against the USDA food database and multiplies it by that line's gram weight. Because the maths runs off grams rather than a fixed per-serving number, the totals stay right when you scale a recipe up or down.",
+    tip: "Matching isn't perfect yet — open the breakdown and check the per-ingredient list if a number looks off.",
   },
   {
     path: "/recipe-box",
@@ -92,6 +103,25 @@ export const TOUR_STEPS: TourStep[] = [
     body: "Every page has an (i) next to its description with more detail on how it works. And this button replays the walkthrough whenever you want it.",
   },
 ];
+
+/**
+ * The route a step actually opens on.
+ *
+ * Steps that need a recipe get one the viewer owns; with no recipes yet — a
+ * brand-new account, most likely — they fall back to the recipe list, where
+ * there's nothing to point at, so the callout shows on its own.
+ */
+export function stepPath(step: TourStep, recipeId: string | null): string {
+  return step.needsRecipe && recipeId ? `/recipes/${recipeId}` : step.path;
+}
+
+/** No anchor on the fallback route, so the arrow never points at nothing. */
+export function stepTarget(
+  step: TourStep,
+  recipeId: string | null,
+): string | undefined {
+  return step.needsRecipe && !recipeId ? undefined : step.target;
+}
 
 /** Within a day of signing up — someone who has genuinely never seen this. */
 export function isNewAccount(createdAt: string | null | undefined): boolean {

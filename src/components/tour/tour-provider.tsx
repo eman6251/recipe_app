@@ -8,8 +8,8 @@ import {
   useState,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { TOUR_STEPS } from "@/lib/tour";
-import { markTourSeen } from "@/app/(app)/tour-actions";
+import { TOUR_STEPS, stepPath, stepTarget } from "@/lib/tour";
+import { getTourRecipeId, markTourSeen } from "@/app/(app)/tour-actions";
 import { Spotlight } from "./spotlight";
 import { TourInvitation } from "./tour-invitation";
 
@@ -38,6 +38,9 @@ export function TourProvider({
     invitation === "auto" ? 0 : null,
   );
   const [asking, setAsking] = useState(invitation === "prompt");
+  // One of the steps opens a real recipe page; which one is looked up once,
+  // when the tour is running, rather than on every app load.
+  const [recipeId, setRecipeId] = useState<string | null>(null);
 
   const start = useCallback(() => {
     setAsking(false);
@@ -49,12 +52,27 @@ export function TourProvider({
     if (invitation) markTourSeen();
   }, [invitation]);
 
+  // Looked up when the tour opens, not on every step.
+  const running = step !== null;
+  useEffect(() => {
+    if (!running) return;
+    let cancelled = false;
+    getTourRecipeId().then((id) => {
+      if (!cancelled) setRecipeId(id);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [running]);
+
   const current = step === null ? null : TOUR_STEPS[step];
 
   // Each step lives on a page; walk there before pointing at anything on it.
   useEffect(() => {
-    if (current && current.path !== pathname) router.push(current.path);
-  }, [current, pathname, router]);
+    if (!current) return;
+    const path = stepPath(current, recipeId);
+    if (path !== pathname) router.push(path);
+  }, [current, pathname, recipeId, router]);
 
   const close = useCallback(() => setStep(null), []);
 
@@ -75,7 +93,7 @@ export function TourProvider({
       {current ? (
         <Spotlight
           key={step}
-          step={current}
+          step={{ ...current, target: stepTarget(current, recipeId) }}
           index={step!}
           total={TOUR_STEPS.length}
           onNext={next}

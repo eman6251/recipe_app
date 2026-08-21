@@ -24,6 +24,7 @@ export function MacroButton({
   return (
     <div className="mt-4">
       <button
+        data-tour="compute-macros"
         onClick={run}
         disabled={pending}
         className="inline-flex items-center gap-1.5 rounded-lg border border-black/10 px-3 py-1.5 text-sm font-medium text-zinc-600 transition-colors hover:bg-black/5 disabled:opacity-50 dark:border-white/10 dark:text-zinc-400 dark:hover:bg-white/5"
