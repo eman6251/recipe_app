@@ -16,7 +16,9 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <div className="mb-8 flex items-start justify-between gap-4">
-      <div>
+      {/* The walkthrough points at this on pages with no single element that
+          stands for the feature. */}
+      <div data-tour="page-header">
         <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
           {title}
         </h1>

@@ -1,5 +1,7 @@
 import { Nav } from "@/components/nav";
 import { InstallPrompt } from "@/components/install-prompt";
+import { TourProvider } from "@/components/tour/tour-provider";
+import { tourInvitation } from "@/lib/tour";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -18,12 +20,16 @@ export default async function AppLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("avatar_url")
+    .select("avatar_url, tour_seen_at")
     .eq("id", user?.id ?? "")
     .maybeSingle();
 
+  const invitation = user
+    ? tourInvitation(user.created_at, profile?.tour_seen_at)
+    : null;
+
   return (
-    <>
+    <TourProvider invitation={invitation}>
       <Nav
         avatarUrl={profile?.avatar_url ?? null}
         signedIn={!!user}
@@ -36,6 +42,6 @@ export default async function AppLayout({
           {children}
         </div>
       </main>
-    </>
+    </TourProvider>
   );
 }

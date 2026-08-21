@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { updateProfile } from "./actions";
 import { AvatarUpload } from "./avatar-upload";
 import { ThemePicker } from "@/components/theme-picker";
+import { TourButton } from "@/components/tour/tour-button";
 import { THEME_COOKIE, isThemeChoice } from "@/lib/theme";
 
 const inputClass =
@@ -117,6 +118,15 @@ export default async function ProfilePage({
             </button>
           </div>
         </form>
+
+        <div className="border-t border-black/10 pt-4 dark:border-white/10">
+          <h3 className="text-sm font-medium">Getting around</h3>
+          <p className="mb-2 mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+            A quick pass over meal planning, the shopping list, pantry staples
+            and macros — the parts that don&apos;t work like other recipe apps.
+          </p>
+          <TourButton />
+        </div>
 
         <div className="border-t border-black/10 pt-4 dark:border-white/10">
           <h3 className="text-sm font-medium">Appearance</h3>

@@ -29,7 +29,10 @@ export function ImportPanel({
   };
 
   return (
-    <section className="mb-6 flex flex-col gap-3 rounded-xl border border-amber-400/30 bg-surface p-6">
+    <section
+      data-tour="import-panel"
+      className="mb-6 flex flex-col gap-3 rounded-xl border border-amber-400/30 bg-surface p-6"
+    >
       <div className="flex items-center gap-2">
         <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-400" />
         <h2 className="text-sm font-semibold">Import with AI</h2>
