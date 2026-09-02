@@ -32,7 +32,7 @@ export default async function ShoppingPage({
     listPantryItems(),
   ]);
 
-  const { ingredients, carriedOver } = flattenPlannedMeals(planned, {
+  const { ingredients, carriedOver, choices } = flattenPlannedMeals(planned, {
     from,
     to,
   });
@@ -53,9 +53,11 @@ export default async function ShoppingPage({
         description="Generated from your planned meals, minus pantry staples."
         info={
           <>
-            Built from what you&apos;ll <strong>cook</strong> this week, scaled
-            to the portions you set — plan 7 portions of a 14-sandwich recipe
-            and it buys half the ingredients. A batch counts on the first day
+            Built from what you&apos;ll <strong>cook</strong> this week. More
+            portions than the recipe makes buys more; <em>fewer</em> still buys
+            the whole recipe, since you can&apos;t cook a quarter of a stew —
+            though you can switch any of those to the smaller amount where the
+            recipe genuinely divides. A batch counts on the first day
             it appears on the calendar, so meals you cooked last week and are
             still eating don&apos;t get shopped for twice, and a batch cooked
             Saturday is bought in full even though you eat most of it next
@@ -70,6 +72,7 @@ export default async function ShoppingPage({
       />
       <ShoppingList
         weekStart={from}
+        choices={choices}
         mealCount={mealCount}
         toBuy={toBuy}
         covered={covered}

@@ -52,6 +52,7 @@ const BATCH_SPAN_DAYS = 6;
 
 /** One cook: the portions of a recipe eaten across consecutive-ish days. */
 export type MealBatch = {
+  recipeId: string;
   recipe: NonNullable<PlannedMealWithFullRecipe["recipes"]>;
   /** The day it's assumed to have been cooked — its first planned portion. */
   cookedOn: string;
@@ -61,6 +62,8 @@ export type MealBatch = {
   portions: number;
   /** Ticked off as cooked on the calendar or week view. */
   cooked: boolean;
+  /** Buy for the portions planned rather than for the whole recipe. */
+  scaleToPortions: boolean;
 };
 
 /**
@@ -96,11 +99,13 @@ export function groupIntoBatches(
         daysBetween(current.cookedOn, meal.planned_on) > BATCH_SPAN_DAYS
       ) {
         current = {
+          recipeId: meal.recipe_id,
           recipe: meal.recipes!,
           cookedOn: meal.planned_on,
           lastDay: meal.planned_on,
           portions: 0,
           cooked: false,
+          scaleToPortions: false,
         };
         batches.push(current);
       }
@@ -109,16 +114,37 @@ export function groupIntoBatches(
       // Cooking is one event for the whole batch, so any portion marked
       // cooked means the ingredients were already bought.
       current.cooked ||= meal.cooked;
+      // The choice belongs to the cook, so any row carrying it sets it for
+      // the whole batch — that's how the action writes it back, too.
+      current.scaleToPortions ||= meal.scale_to_portions;
     }
   }
 
   return batches;
 }
 
+/**
+ * A batch planned for fewer portions than the recipe yields, where the two
+ * readings genuinely differ and only the cook knows which is meant.
+ */
+export type PortionChoice = {
+  recipeId: string;
+  title: string;
+  /** First planned day — identifies which cook this is. */
+  cookedOn: string;
+  lastDay: string;
+  plannedPortions: number;
+  recipeServings: number;
+  /** False means the list currently holds the full recipe. */
+  scaleToPortions: boolean;
+};
+
 export type FlattenedPlan = {
   ingredients: ShoppingIngredientInput[];
   /** Batches left off because they were cooked before the week started. */
   carriedOver: { title: string; cookedOn: string; portions: number }[];
+  /** Under-filled batches, for the "whole recipe or just these?" prompt. */
+  choices: PortionChoice[];
 };
 
 /**
@@ -143,6 +169,7 @@ export function flattenPlannedMeals(
 ): FlattenedPlan {
   const out: ShoppingIngredientInput[] = [];
   const carriedOver: FlattenedPlan["carriedOver"] = [];
+  const choices: PortionChoice[] = [];
 
   for (const batch of groupIntoBatches(planned)) {
     if (week) {
@@ -166,10 +193,32 @@ export function flattenPlannedMeals(
 
     const { recipe } = batch;
     const baseServings = recipe.servings || 1;
-    // Scales both ways: half the portions of a 14-sandwich recipe buys half
-    // the ingredients. The planned portion count is the whole instruction —
-    // if you wanted the full batch you'd have planned the full batch.
-    const scale = batch.portions / baseServings;
+    const planned = batch.portions / baseServings;
+
+    /*
+     * Scaling up is unambiguous — eight portions of a four-serving recipe is
+     * two batches, so buy twice.
+     *
+     * Scaling down isn't, and defaults to the whole recipe. Planning one
+     * dinner from a recipe that makes four rarely means buying a quarter of
+     * the ingredients; you cook the pot and eat the rest. But some recipes
+     * genuinely halve — seven of fourteen sandwiches — and only the cook
+     * knows which this is, so the reduction is offered rather than assumed.
+     */
+    const underFilled = planned < 1;
+    if (underFilled) {
+      choices.push({
+        recipeId: batch.recipeId,
+        title: recipe.title,
+        cookedOn: batch.cookedOn,
+        lastDay: batch.lastDay,
+        plannedPortions: batch.portions,
+        recipeServings: baseServings,
+        scaleToPortions: batch.scaleToPortions,
+      });
+    }
+
+    const scale = underFilled && !batch.scaleToPortions ? 1 : planned;
     const title =
       scale !== 1 ? `${recipe.title} ×${formatQuantity(scale)}` : recipe.title;
 
@@ -185,7 +234,7 @@ export function flattenPlannedMeals(
     }
   }
 
-  return { ingredients: out, carriedOver };
+  return { ingredients: out, carriedOver, choices };
 }
 
 /** Merge same-unit quantity fragments; different units are shown side by side. */

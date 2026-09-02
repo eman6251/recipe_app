@@ -9,7 +9,8 @@ import {
   ShoppingCart,
 } from "lucide-react";
 import { addDays, fromISODate, toISODate } from "@/lib/dates";
-import type { ShoppingLine } from "@/lib/shopping";
+import type { PortionChoice, ShoppingLine } from "@/lib/shopping";
+import { PortionChoices } from "./portion-choices";
 
 function weekRangeLabel(weekStart: Date): string {
   const fmt = (d: Date) =>
@@ -56,6 +57,7 @@ export function ShoppingList({
   toBuy,
   covered,
   carriedOverCount,
+  choices,
 }: {
   weekStart: string; // YYYY-MM-DD
   mealCount: number;
@@ -63,6 +65,8 @@ export function ShoppingList({
   covered: ShoppingLine[];
   /** Batches left off because they were already cooked; drives the empty state. */
   carriedOverCount: number;
+  /** Batches planned for less than one full recipe. */
+  choices: PortionChoice[];
 }) {
   const start = fromISODate(weekStart);
   const prevWeekStart = toISODate(addDays(start, -7));
@@ -107,6 +111,8 @@ export function ShoppingList({
           </Link>
         </div>
       </div>
+
+      <PortionChoices choices={choices} />
 
       {mealCount === 0 ? (
         <div className="rounded-xl border border-dashed border-black/15 bg-surface/60 p-10 text-center dark:border-white/15">

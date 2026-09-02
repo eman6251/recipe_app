@@ -39,6 +39,7 @@ export type PlannedMealWithFullRecipe = {
   planned_on: string;
   servings: number;
   cooked: boolean;
+  scale_to_portions: boolean;
   recipes: {
     title: string;
     servings: number;
@@ -67,7 +68,7 @@ export async function listPlannedMealsWithIngredients(
   const { data, error } = await supabase
     .from("planned_meals")
     .select(
-      "id, recipe_id, planned_on, servings, cooked, recipes (title, servings, recipe_ingredients (item, quantity, unit, grams))",
+      "id, recipe_id, planned_on, servings, cooked, scale_to_portions, recipes (title, servings, recipe_ingredients (item, quantity, unit, grams))",
     )
     .gte("planned_on", from)
     .lte("planned_on", to)
