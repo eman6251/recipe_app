@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
+import { siteUrl } from "@/lib/site-url";
 
 type AdminUser = {
   id: string;
@@ -53,6 +54,16 @@ export default async function AdminPage() {
 
   const totalCalls = aiUsage.reduce((sum, row) => sum + Number(row.calls), 0);
 
+  // Emailed links are the one thing you can't check by using the app: they're
+  // built server-side and read somewhere else, so a wrong one only shows up as
+  // a dead page in someone's inbox. Print the actual value instead.
+  const origin = await siteUrl();
+  const linkSource = process.env.NEXT_PUBLIC_SITE_URL
+    ? "NEXT_PUBLIC_SITE_URL"
+    : process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? "VERCEL_PROJECT_PRODUCTION_URL"
+      : "this request's own host (no site URL is configured)";
+
   return (
     <>
       <PageHeader
@@ -66,6 +77,29 @@ export default async function AdminPage() {
           </>
         }
       />
+
+      <section className="mb-8 rounded-xl border border-black/10 bg-surface p-5 dark:border-white/10">
+        <h2 className="text-sm font-semibold">Emailed links</h2>
+        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+          Where password-reset and confirmation emails point. Supabase replaces
+          this with the project&apos;s <strong>Site URL</strong> if it
+          isn&apos;t listed under Authentication → URL Configuration → Redirect
+          URLs, so a link that disagrees with the address below is that
+          substitution, not this value.
+        </p>
+        <dl className="mt-3 flex flex-col gap-2 text-sm">
+          <div className="flex flex-wrap items-baseline gap-x-2">
+            <dt className="text-xs text-zinc-500 dark:text-zinc-400">Reset link:</dt>
+            <dd className="break-all font-mono text-xs">
+              {origin}/auth/confirm?next=/reset-password
+            </dd>
+          </div>
+          <div className="flex flex-wrap items-baseline gap-x-2">
+            <dt className="text-xs text-zinc-500 dark:text-zinc-400">Taken from:</dt>
+            <dd className="text-xs">{linkSource}</dd>
+          </div>
+        </dl>
+      </section>
 
       <section className="mb-8 overflow-x-auto rounded-xl border border-black/10 bg-surface dark:border-white/10">
         <table className="w-full min-w-[36rem] text-sm">
