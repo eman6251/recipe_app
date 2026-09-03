@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { ArrowLeft, LogOut, Send, Users, X } from "lucide-react";
+import { ArrowLeft, LogOut, Paperclip, Send, Users, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
   conversationName,
+  formatBytes,
+  messagePreview,
   type ChatMessage,
   type ConversationSummary,
   type FriendEdge,
@@ -15,8 +17,14 @@ import {
   listMessages,
   markConversationRead,
   sendMessage,
+  type PendingAttachment,
 } from "@/app/(app)/friends/actions";
 import { Avatar } from "./avatar";
+import { MessageAttachments } from "./attachments";
+import {
+  MAX_ATTACHMENTS,
+  uploadAttachments,
+} from "./upload-attachments";
 
 /** Backstop for the realtime subscription, in case the socket drops. */
 const POLL_MS = 10_000;
@@ -213,7 +221,9 @@ function ConversationList({
                     </span>
                   </span>
                   <span className="block truncate text-xs text-zinc-500 dark:text-zinc-400">
-                    {c.last_message_body ?? "No messages yet"}
+                    {c.last_message_body === null
+                      ? "No messages yet"
+                      : messagePreview(c.last_message_body)}
                   </span>
                 </span>
                 {c.unread_count > 0 ? (
@@ -245,6 +255,9 @@ function Thread({
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [staged, setStaged] = useState<File[]>([]);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const latestRef = useRef<string | undefined>(undefined);
 
@@ -289,7 +302,11 @@ function Thread({
           table: "messages",
           filter: `conversation_id=eq.${conversation.id}`,
         },
-        (payload) => merge([payload.new as ChatMessage]),
+        () => {
+          // The payload is the bare messages row — no attachments joined onto
+          // it, and no signed URLs — so use it only as a nudge to go and read.
+          listMessages(conversation.id, latestRef.current).then(merge);
+        },
       )
       .subscribe();
 
@@ -309,13 +326,38 @@ function Thread({
 
   const send = async () => {
     const body = draft.trim();
-    if (!body || sending) return;
+    if ((!body && staged.length === 0) || sending) return;
+
     setSending(true);
+    setUploadError(null);
+
+    // Files go up first: a message that references an upload that failed
+    // would show as an attachment that never arrives.
+    let attachments: PendingAttachment[] = [];
+    if (staged.length > 0) {
+      const result = await uploadAttachments(conversation.id, staged);
+      if (result.error) {
+        setUploadError(result.error);
+        setSending(false);
+        return;
+      }
+      attachments = result.attachments;
+    }
+
     setDraft("");
-    await sendMessage(conversation.id, body);
+    setStaged([]);
+    const result = await sendMessage(conversation.id, body, attachments);
+    if (result.error) setUploadError(result.error);
+
     merge(await listMessages(conversation.id, latestRef.current));
     setSending(false);
     onChanged();
+  };
+
+  const stage = (picked: FileList | null) => {
+    if (!picked || picked.length === 0) return;
+    setUploadError(null);
+    setStaged((prev) => [...prev, ...Array.from(picked)].slice(0, MAX_ATTACHMENTS));
   };
 
   return (
@@ -386,15 +428,21 @@ function Thread({
                     {sender?.display_name ?? "Someone"}
                   </span>
                 ) : null}
-                <span
-                  className={`max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-3 py-1.5 text-sm ${
-                    mine
-                      ? "rounded-br-sm bg-amber-400 text-zinc-950"
-                      : "rounded-bl-sm bg-black/5 dark:bg-white/10"
-                  }`}
-                >
-                  {m.body}
-                </span>
+                {m.body ? (
+                  <span
+                    className={`max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-3 py-1.5 text-sm ${
+                      mine
+                        ? "rounded-br-sm bg-amber-400 text-zinc-950"
+                        : "rounded-bl-sm bg-black/5 dark:bg-white/10"
+                    }`}
+                  >
+                    {m.body}
+                  </span>
+                ) : null}
+                <MessageAttachments
+                  attachments={m.attachments ?? []}
+                  mine={mine}
+                />
                 <span className="mt-0.5 px-1 text-[10px] text-zinc-400">
                   {timeLabel(m.created_at)}
                 </span>
@@ -405,7 +453,58 @@ function Thread({
         <div ref={bottomRef} />
       </div>
 
-      <div className="flex items-end gap-2 border-t border-black/10 p-3 dark:border-white/10">
+      <div className="border-t border-black/10 p-3 dark:border-white/10">
+        {staged.length > 0 ? (
+          <ul className="mb-2 flex flex-wrap gap-1.5">
+            {staged.map((file, i) => (
+              <li
+                key={`${file.name}-${i}`}
+                className="flex max-w-full items-center gap-1.5 rounded-lg bg-black/5 px-2 py-1 text-xs dark:bg-white/10"
+              >
+                <span className="min-w-0 truncate">{file.name}</span>
+                <span className="shrink-0 text-zinc-500 dark:text-zinc-400">
+                  {formatBytes(file.size)}
+                </span>
+                <button
+                  onClick={() =>
+                    setStaged((prev) => prev.filter((_, j) => j !== i))
+                  }
+                  aria-label={`Remove ${file.name}`}
+                  className="shrink-0 rounded p-0.5 text-zinc-500 hover:bg-black/10 dark:hover:bg-white/10"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
+        {uploadError ? (
+          <p className="mb-2 text-xs text-red-600 dark:text-red-400">
+            {uploadError}
+          </p>
+        ) : null}
+
+        <div className="flex items-end gap-2">
+        <input
+          ref={fileRef}
+          type="file"
+          multiple
+          hidden
+          onChange={(e) => {
+            stage(e.target.files);
+            // Reset, so picking the same file twice in a row still fires.
+            e.target.value = "";
+          }}
+        />
+        <button
+          onClick={() => fileRef.current?.click()}
+          disabled={sending || staged.length >= MAX_ATTACHMENTS}
+          aria-label="Attach files"
+          className="shrink-0 rounded-lg p-2 text-zinc-500 transition-colors hover:bg-black/5 hover:text-zinc-900 disabled:opacity-40 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-zinc-100"
+        >
+          <Paperclip className="h-4 w-4" />
+        </button>
         <textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -421,12 +520,13 @@ function Thread({
         />
         <button
           onClick={send}
-          disabled={!draft.trim() || sending}
+          disabled={(!draft.trim() && staged.length === 0) || sending}
           aria-label="Send"
           className="shrink-0 rounded-lg bg-amber-400 p-2 text-zinc-950 transition-colors hover:bg-amber-300 disabled:opacity-50"
         >
           <Send className="h-4 w-4" />
         </button>
+        </div>
       </div>
     </div>
   );

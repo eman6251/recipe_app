@@ -26,13 +26,46 @@ export type ConversationSummary = {
   members: FriendProfile[];
 };
 
+export type ChatAttachment = {
+  id: string;
+  file_name: string;
+  mime_type: string;
+  size_bytes: number;
+  width: number | null;
+  height: number | null;
+  /**
+   * Time-limited link minted on the server. The bucket is private, so there's
+   * no permanent URL to hold onto — a stale one stops working rather than
+   * leaking, which is the right way round.
+   */
+  url: string | null;
+};
+
 export type ChatMessage = {
   id: string;
   conversation_id: string;
   sender_id: string;
   body: string;
   created_at: string;
+  attachments: ChatAttachment[];
 };
+
+export function isImage(attachment: ChatAttachment): boolean {
+  return attachment.mime_type.startsWith("image/");
+}
+
+/** "2.4 MB" — enough to know whether it's worth tapping on mobile data. */
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/** Preview line for the conversation list; attachments arrive with no body. */
+export function messagePreview(body: string | null): string {
+  const trimmed = body?.trim();
+  return trimmed || "Attachment";
+}
 
 /** What to call a thread: its name, or whoever's in it. */
 export function conversationName(c: ConversationSummary): string {

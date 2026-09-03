@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type {
+  ChatAttachment,
   ChatMessage,
   ConversationSummary,
   FriendEdge,
@@ -33,6 +34,20 @@ export async function listConversations(): Promise<ConversationSummary[]> {
   return (data ?? []) as ConversationSummary[];
 }
 
+/** How long an attachment link stays good. Long enough to read a backlog. */
+const SIGNED_URL_SECONDS = 60 * 60;
+
+type AttachmentRow = {
+  id: string;
+  message_id: string;
+  storage_path: string;
+  file_name: string;
+  mime_type: string;
+  size_bytes: number;
+  width: number | null;
+  height: number | null;
+};
+
 export async function listMessages(
   conversationId: string,
   /** Only what's arrived since, for the poll that backs up realtime. */
@@ -41,13 +56,47 @@ export async function listMessages(
   const supabase = await createClient();
   let query = supabase
     .from("messages")
-    .select("id, conversation_id, sender_id, body, created_at")
+    .select(
+      "id, conversation_id, sender_id, body, created_at, message_attachments (id, message_id, storage_path, file_name, mime_type, size_bytes, width, height)",
+    )
     .eq("conversation_id", conversationId);
 
   if (since) query = query.gt("created_at", since);
 
   const { data } = await query.order("created_at", { ascending: true }).limit(200);
-  return (data ?? []) as ChatMessage[];
+  const rows = (data ?? []) as unknown as (Omit<ChatMessage, "attachments"> & {
+    message_attachments: AttachmentRow[];
+  })[];
+
+  // One signing call for the whole page rather than one per file: the bucket
+  // is private, so every attachment needs a fresh link on every read.
+  const paths = rows.flatMap((r) =>
+    r.message_attachments.map((a) => a.storage_path),
+  );
+  const signed = new Map<string, string>();
+  if (paths.length > 0) {
+    const { data: urls } = await supabase.storage
+      .from("chat-attachments")
+      .createSignedUrls(paths, SIGNED_URL_SECONDS);
+    for (const entry of urls ?? []) {
+      if (entry.path && entry.signedUrl) signed.set(entry.path, entry.signedUrl);
+    }
+  }
+
+  return rows.map(({ message_attachments, ...message }) => ({
+    ...message,
+    attachments: message_attachments.map(
+      (a): ChatAttachment => ({
+        id: a.id,
+        file_name: a.file_name,
+        mime_type: a.mime_type,
+        size_bytes: a.size_bytes,
+        width: a.width,
+        height: a.height,
+        url: signed.get(a.storage_path) ?? null,
+      }),
+    ),
+  }));
 }
 
 const CODE_SHAPE = /^SKL-[2-9A-HJ-NP-TV-Z]{4}-[2-9A-HJ-NP-TV-Z]{4}$/;
@@ -161,19 +210,59 @@ export async function createGroup(
   return { conversationId: data as string };
 }
 
+/** Files already uploaded to storage by the browser, awaiting a message. */
+export type PendingAttachment = {
+  storage_path: string;
+  file_name: string;
+  mime_type: string;
+  size_bytes: number;
+  width?: number | null;
+  height?: number | null;
+};
+
 export async function sendMessage(
   conversationId: string,
   body: string,
+  attachments: PendingAttachment[] = [],
 ): Promise<{ error?: string }> {
   const trimmed = body.trim();
-  if (!trimmed) return {};
+  // A message with nothing in it and nothing attached isn't a message.
+  if (!trimmed && attachments.length === 0) return {};
   if (trimmed.length > 4000) return { error: "That message is too long." };
 
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data: message, error } = await supabase
     .from("messages")
-    .insert({ conversation_id: conversationId, body: trimmed });
-  return error ? { error: error.message } : {};
+    .insert({ conversation_id: conversationId, body: trimmed })
+    .select("id")
+    .single();
+
+  if (error) return { error: error.message };
+
+  if (attachments.length > 0) {
+    const { error: attachError } = await supabase
+      .from("message_attachments")
+      .insert(
+        attachments.map((a) => ({
+          message_id: message.id,
+          storage_path: a.storage_path,
+          file_name: a.file_name,
+          mime_type: a.mime_type,
+          size_bytes: a.size_bytes,
+          width: a.width ?? null,
+          height: a.height ?? null,
+        })),
+      );
+
+    if (attachError) {
+      // Better an absent message than one that claims to carry files it
+      // doesn't — the sender can retry, and the orphaned uploads are unread.
+      await supabase.from("messages").delete().eq("id", message.id);
+      return { error: attachError.message };
+    }
+  }
+
+  return {};
 }
 
 export async function markConversationRead(conversationId: string) {
