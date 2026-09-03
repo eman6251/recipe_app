@@ -1,4 +1,5 @@
 import { ChefHat } from "lucide-react";
+import { InstallPrompt } from "@/components/install-prompt";
 import { LoginForm } from "./login-form";
 
 export default async function LoginPage({
@@ -32,6 +33,8 @@ export default async function LoginPage({
 
         <LoginForm next={next ?? "/"} />
       </div>
+
+      <InstallPrompt />
     </div>
   );
 }
