@@ -8,12 +8,8 @@ import {
   ChefHat,
   BookOpen,
   BookMarked,
-  CalendarDays,
-  UtensilsCrossed,
-  ShoppingCart,
-  Refrigerator,
-  Carrot,
   LogOut,
+  LayoutGrid,
   UserRound,
   UsersRound,
   type LucideIcon,
@@ -24,27 +20,31 @@ import { FILTER_GROUPS } from "@/lib/filters";
 import { INGREDIENT_GROUPS } from "@/lib/ingredients";
 
 /**
- * The mobile tab bar only. Desktop renders DESKTOP_ITEMS instead, where
- * Calendar/This Week/Shopping/Pantry live under the Organization menu —
- * a phone has no room for a mega-menu, so those stay top-level here.
+ * The mobile tab bar. Desktop renders DESKTOP_ITEMS instead.
+ *
+ * Five tabs, because seven across a phone left each one about fifty pixels
+ * wide with the labels nearly touching. Calendar, This Week, Shopping and
+ * Pantry sit behind one Organization tab that opens their landing page — the
+ * same grouping the desktop bar uses in its mega-menu.
  */
 type MobileItem = {
   href: string;
   label: string;
   icon: LucideIcon;
-  /** Too many destinations for a phone; these drop off the tab bar. */
-  desktopOnly?: boolean;
+  /** Routes that should light this tab up, for a tab that fronts several. */
+  matches?: string[];
 };
 
 const MOBILE_ITEMS: MobileItem[] = [
   { href: "/", label: "Home", icon: ChefHat },
   { href: "/recipes", label: "Recipes", icon: BookOpen },
-  { href: "/ingredients", label: "Ingredients", icon: Carrot, desktopOnly: true },
   { href: "/recipe-box", label: "Recipe Box", icon: BookMarked },
-  { href: "/calendar", label: "Calendar", icon: CalendarDays },
-  { href: "/week", label: "This Week", icon: UtensilsCrossed },
-  { href: "/shopping", label: "Shopping", icon: ShoppingCart },
-  { href: "/pantry", label: "Pantry", icon: Refrigerator, desktopOnly: true },
+  {
+    href: "/organization",
+    label: "Organize",
+    icon: LayoutGrid,
+    matches: ["/calendar", "/week", "/shopping", "/pantry"],
+  },
   // Desktop opens this as a slide-over from the top bar instead.
   { href: "/friends", label: "Friends", icon: UsersRound },
 ];
@@ -310,9 +310,11 @@ export function Nav({
 
       {/* Mobile: bottom tab bar — a top bar can't hold eight destinations. */}
       <nav className="md:hidden fixed inset-x-0 bottom-0 z-30 flex border-t border-black/10 bg-surface/95 backdrop-blur dark:border-white/10">
-        {MOBILE_ITEMS.filter((item) => !item.desktopOnly).map(
-          ({ href, label, icon: Icon }) => {
-            const active = isActive(pathname, href);
+        {MOBILE_ITEMS.map(
+          ({ href, label, icon: Icon, matches }) => {
+            const active =
+              isActive(pathname, href) ||
+              (matches ?? []).some((p) => isActive(pathname, p));
             return (
               <Link
                 key={href}

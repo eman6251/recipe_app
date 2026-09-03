@@ -143,22 +143,22 @@ export default function OrganizationPage() {
         description="Planning, prepping, and shopping — everything between picking a recipe and cooking it."
       />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
         {SECTIONS.map(({ href, label, description, icon: Icon, preview: Preview }) => (
           <Link
             key={href}
             href={href}
-            className="group flex flex-col rounded-xl border border-black/10 bg-surface p-5 transition-colors hover:border-amber-400/60 dark:border-white/10"
+            className="group flex flex-col rounded-xl border border-black/10 bg-surface p-3 transition-colors hover:border-amber-400/60 sm:p-5 dark:border-white/10"
           >
-            <div className="mb-4 rounded-lg bg-canvas p-4">
+            <div className="mb-3 rounded-lg bg-canvas p-2.5 sm:mb-4 sm:p-4">
               <Preview />
             </div>
 
-            <h2 className="flex items-center gap-2 font-semibold">
-              <Icon className="h-4 w-4 text-amber-500" />
+            <h2 className="flex items-center gap-1.5 text-sm font-semibold sm:gap-2 sm:text-base">
+              <Icon className="h-4 w-4 shrink-0 text-amber-500" />
               {label}
             </h2>
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="mt-1 text-xs text-zinc-500 sm:text-sm dark:text-zinc-400">
               {description}
             </p>
           </Link>
