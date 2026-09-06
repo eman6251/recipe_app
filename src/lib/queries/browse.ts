@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/user";
 import type { Macros } from "@/lib/types";
 
 /** A recipe card carrying everything the browse filters need. */
@@ -35,9 +36,7 @@ type Row = {
  */
 export async function listBrowseRecipes(): Promise<BrowseRecipe[]> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return [];
 
   const [{ data: rows }, { data: profiles }, { data: ratings }] =

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/user";
 import type { Macros } from "@/lib/types";
 
 export type RecipeCard = {
@@ -43,9 +44,7 @@ const CARD_FIELDS =
 
 export async function getHomeData(authorId?: string): Promise<HomeData> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   const empty: HomeData = {
     signedIn: !!user,
@@ -103,13 +102,28 @@ export async function getHomeData(authorId?: string): Promise<HomeData> {
     };
   }
 
-  // Everything visible: own recipes plus anything shared.
-  const [{ data: visible }, { data: profiles }, { data: ratings }] =
-    await Promise.all([
-      supabase.from("recipes").select(CARD_FIELDS),
-      supabase.from("profiles").select("id, display_name"),
-      supabase.from("recipe_ratings").select("recipe_id, rating, user_id"),
-    ]);
+  // Everything the page needs, in one round rather than three.
+  //
+  // recipe_views and planned_meals used to be fetched further down, after this
+  // batch had resolved — but nothing about *fetching* them depended on it, only
+  // the joining afterwards. Two sequential round trips for no reason.
+  const [
+    { data: visible },
+    { data: profiles },
+    { data: ratings },
+    { data: views },
+    { data: cooked },
+  ] = await Promise.all([
+    supabase.from("recipes").select(CARD_FIELDS),
+    supabase.from("profiles").select("id, display_name"),
+    supabase.from("recipe_ratings").select("recipe_id, rating, user_id"),
+    supabase
+      .from("recipe_views")
+      .select("recipe_id, viewed_at")
+      .order("viewed_at", { ascending: false })
+      .limit(20),
+    supabase.from("planned_meals").select("recipe_id").eq("cooked", true),
+  ]);
 
   const recipes = (visible ?? []) as RecipeRow[];
   if (recipes.length === 0) return empty;
@@ -145,23 +159,12 @@ export async function getHomeData(authorId?: string): Promise<HomeData> {
   const byId = new Map(recipes.map((r) => [r.id, r]));
 
   // ---- Recently viewed
-  const { data: views } = await supabase
-    .from("recipe_views")
-    .select("recipe_id, viewed_at")
-    .order("viewed_at", { ascending: false })
-    .limit(20);
-
   const recentlyViewed = (views ?? [])
     .map((v) => byId.get(v.recipe_id))
     .filter((r): r is RecipeRow => !!r)
     .map(toCard);
 
   // ---- Cook history: meals planned and actually checked off as cooked.
-  const { data: cooked } = await supabase
-    .from("planned_meals")
-    .select("recipe_id")
-    .eq("cooked", true);
-
   const cookedIds = new Set((cooked ?? []).map((c) => c.recipe_id));
 
   // Taste profile: tags from what's been cooked, weighted up by good ratings.

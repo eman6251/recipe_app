@@ -3,6 +3,7 @@ import { InstallPrompt } from "@/components/install-prompt";
 import { TourProvider } from "@/components/tour/tour-provider";
 import { tourInvitation } from "@/lib/tour";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/user";
 
 /**
  * Layout for the signed-in app: top bar on desktop, bottom tab bar on mobile.
@@ -14,9 +15,7 @@ export default async function AppLayout({
   children: React.ReactNode;
 }>) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   const { data: profile } = await supabase
     .from("profiles")

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/user";
 import { DEFAULT_CATEGORIES } from "@/lib/pantry";
 import type {
   PantryCategory,
@@ -13,10 +14,7 @@ import type {
  * views would otherwise fill up with everyone else's.
  */
 export async function currentUserId(): Promise<string | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   return user?.id ?? null;
 }
 

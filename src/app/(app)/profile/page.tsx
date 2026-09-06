@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/user";
 import { updateProfile } from "./actions";
 import { AvatarUpload } from "./avatar-upload";
 import { ThemePicker } from "@/components/theme-picker";
@@ -18,9 +19,7 @@ export default async function ProfilePage({
 }) {
   const { error, message } = await searchParams;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   const stored = (await cookies()).get(THEME_COOKIE)?.value;
   const themeChoice = isThemeChoice(stored) ? stored : "system";

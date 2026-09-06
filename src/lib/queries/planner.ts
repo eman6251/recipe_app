@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/user";
 import type { Macros, MealSlot } from "@/lib/types";
 
 export type PlannedMealWithRecipe = {
@@ -87,9 +88,7 @@ export type RecipeOption = {
 
 export async function listRecipeOptions(): Promise<RecipeOption[]> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return [];
 
   // Own recipes only — RLS also exposes other users' shared recipes, which

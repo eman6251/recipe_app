@@ -1,13 +1,10 @@
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/user";
 import { FriendsHub } from "@/components/friends/friends-hub";
 
 export default async function FriendsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) redirect("/login");
 
   return (
