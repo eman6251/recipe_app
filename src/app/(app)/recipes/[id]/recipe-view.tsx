@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { formatQuantity } from "@/lib/quantity";
+import { gramsToVolume, hasConvertibleLines } from "@/lib/volume";
 import type { RecipeWithIngredients } from "@/lib/types";
 
 const MULTIPLIERS = [0.25, 0.5, 0.75, 1, 1.5, 2, 3];
@@ -11,6 +12,7 @@ const UNIT_MODES = [
   { id: "original", label: "Original" },
   { id: "grams", label: "Grams" },
   { id: "ounces", label: "Ounces" },
+  { id: "volume", label: "Cups" },
 ] as const;
 
 type UnitMode = (typeof UNIT_MODES)[number]["id"];
@@ -20,17 +22,27 @@ const GRAMS_PER_OUNCE = 28.3495;
 /**
  * Amount for one ingredient line at the current scale and unit mode.
  *
- * Weight modes lean on the per-ingredient gram estimates the importer and
- * macro pass already produce, so there's no volume→weight conversion (and no
- * per-food density table) to get wrong. Lines with no gram estimate fall back
- * to their original measurement rather than showing nothing.
+ * The weight modes lean on the per-ingredient gram estimates the importer and
+ * macro pass already produce. Cups need more than that — a cup of flour and a
+ * cup of honey differ by nearly three times — so they go through a density
+ * table, and any ingredient missing from it keeps its original measurement
+ * rather than being guessed at.
  */
 function formatAmount(
   ing: RecipeWithIngredients["recipe_ingredients"][number],
   multiplier: number,
   mode: UnitMode,
 ): string {
-  if (mode !== "original" && ing.grams != null) {
+  if (mode === "volume" && ing.grams != null) {
+    const measure = gramsToVolume(ing.item, ing.grams * multiplier);
+    if (measure) {
+      return measure.unit === "pinch"
+        ? "a pinch"
+        : `${formatQuantity(measure.amount)} ${measure.unit}`;
+    }
+  }
+
+  if (mode !== "original" && mode !== "volume" && ing.grams != null) {
     const grams = ing.grams * multiplier;
     if (mode === "grams") return `${Math.round(grams)} g`;
     const oz = grams / GRAMS_PER_OUNCE;
@@ -61,6 +73,8 @@ export function RecipeView({
   const [checkedSteps, setCheckedSteps] = useState<Set<number>>(new Set());
 
   const anyGrams = recipe.recipe_ingredients.some((i) => i.grams != null);
+  // No point offering cups for a recipe of nothing but meat and vegetables.
+  const anyVolume = hasConvertibleLines(recipe.recipe_ingredients);
 
   const multiplierOptions =
     plannedMultiplier && !MULTIPLIERS.includes(plannedMultiplier)
@@ -157,7 +171,9 @@ export function RecipeView({
               Measure in
             </span>
             <div className="flex items-center rounded-lg border border-black/10 p-0.5 dark:border-white/10">
-              {UNIT_MODES.map((m) => (
+              {UNIT_MODES.filter(
+                (m) => m.id !== "volume" || anyVolume,
+              ).map((m) => (
                 <button
                   key={m.id}
                   onClick={() => setUnitMode(m.id)}
@@ -172,6 +188,14 @@ export function RecipeView({
               ))}
             </div>
           </div>
+        ) : null}
+
+        {unitMode === "volume" ? (
+          <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+            Approximate — flour spooned and flour scooped differ by a fifth,
+            and cups can&apos;t tell them apart. Anything not convertible keeps
+            its original measurement; switch to Grams for baking you care about.
+          </p>
         ) : null}
 
         {scaled ? (
