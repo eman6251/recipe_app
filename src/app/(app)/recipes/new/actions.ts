@@ -72,6 +72,10 @@ Rules:
 - Extract only what the caption supports; never invent ingredients or steps. Light inference is fine (e.g. an obvious unstated step like "serve").
 - Ingredient lines must be split into quantity / unit / item / prep-note. Convert fractions to decimals (1/2 → 0.5).
 - Estimate grams per ingredient line using common culinary weights (1 tbsp olive oil ≈ 13.5g, 1 cup flour ≈ 120g, 1 medium onion ≈ 110g, 1 clove garlic ≈ 5g, etc.). This feeds nutrition math, so give your best estimate rather than null.
+- Gram estimates drive the whole nutrition calculation, and one wrong line can dominate it, so be deliberate about these:
+  - A named packaged product with no quantity means ONE standard retail package, not an unbounded amount. Use the real package size (a bag of Trader Joe's noodles is 16oz/454g, a can of beans 15oz/425g, a block of tofu 14oz/397g). Never inflate to "enough for the servings" — recipes are written around the package.
+  - Weigh things AS PURCHASED, in the state the ingredient names: dry pasta dry, raw meat raw, canned goods drained only if the line says drained. Do not give the cooked weight of something listed uncooked — pasta more than doubles in weight when boiled, and that error alone can double a recipe's calories.
+  - Sanity-check the total against the servings before answering. Add up every line: a main course lands near 350–550g per serving. If your numbers imply a kilo a head, one of them is wrong — usually the bulkiest carb.
 - If servings aren't stated, estimate from total quantities.
 - Steps should be concise and imperative. Split run-on caption text into proper steps.
 - Ignore hashtags, follow-me boilerplate, and emoji spam — but capture genuine tips into notes.`;

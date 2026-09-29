@@ -51,9 +51,26 @@ const GramEstimates = z.object({
   ),
 });
 
-/** Ask Claude for gram estimates for ingredient lines that lack them. */
+const GRAM_SYSTEM_PROMPT = `Estimate the total weight in grams of each ingredient line, using common culinary weights (1 tbsp olive oil ≈ 13.5g, 1 cup flour ≈ 120g, 1 medium onion ≈ 110g).
+
+These numbers drive the whole nutrition calculation and one wrong line can dominate it, so:
+- A named packaged product with no quantity means ONE standard retail package, not an unbounded amount. Use the real package size (a bag of Trader Joe's noodles is 16oz/454g, a can of beans 15oz/425g). Never inflate to "enough for the servings" — recipes are written around the package.
+- Weigh things AS PURCHASED, in the state the line names: dry pasta dry, raw meat raw. Pasta more than doubles in weight when boiled, and that error alone can double a recipe's calories.
+- Sanity-check the total against the servings before answering. A main course lands near 350–550g per serving; if your numbers imply a kilo a head, one of them is wrong — usually the bulkiest carb.
+
+Give your best estimate; use null only when genuinely impossible.`;
+
+/**
+ * Ask Claude for gram estimates for ingredient lines that lack them.
+ *
+ * Sent with the recipe's title, yield and full ingredient list, not just the
+ * lines needing a number. A line judged on its own can't be sanity-checked
+ * against anything — "1 package noodles" is only obviously wrong once you can
+ * see it's meant to feed four people alongside a pound of beef.
+ */
 async function fillMissingGrams(
   lines: { index: number; text: string }[],
+  context: { title: string; servings: number; allLines: string[] },
 ): Promise<Map<number, number>> {
   const out = new Map<number, number>();
   if (lines.length === 0 || !process.env.ANTHROPIC_API_KEY) return out;
@@ -63,12 +80,20 @@ async function fillMissingGrams(
     const response = await client.messages.parse({
       model: "claude-sonnet-5",
       max_tokens: 4000,
-      system:
-        "Estimate the total weight in grams of each ingredient line using common culinary weights (1 tbsp olive oil ≈ 13.5g, 1 cup flour ≈ 120g, 1 medium onion ≈ 110g). Give your best estimate; use null only when genuinely impossible.",
+      system: GRAM_SYSTEM_PROMPT,
       messages: [
         {
           role: "user",
-          content: lines.map((l) => `${l.index}: ${l.text}`).join("\n"),
+          content: [
+            `Recipe: ${context.title}`,
+            `Makes ${context.servings} servings.`,
+            "",
+            "Full ingredient list, for context:",
+            ...context.allLines.map((l) => `- ${l}`),
+            "",
+            "Estimate grams for these lines, by index:",
+            ...lines.map((l) => `${l.index}: ${l.text}`),
+          ].join("\n"),
         },
       ],
       output_config: { format: zodOutputFormat(GramEstimates) },
@@ -194,13 +219,18 @@ export async function computeMacros(
   const gramless = recipe.recipe_ingredients
     .map((ing, index) => ({ ing, index }))
     .filter(({ ing }) => ing.grams == null || ing.grams <= 0);
+  const lineText = (ing: RecipeIngredient) =>
+    [ing.quantity, ing.unit, ing.item, ing.note && `(${ing.note})`]
+      .filter(Boolean)
+      .join(" ");
+
   const estimates = await fillMissingGrams(
-    gramless.map(({ ing, index }) => ({
-      index,
-      text: [ing.quantity, ing.unit, ing.item, ing.note && `(${ing.note})`]
-        .filter(Boolean)
-        .join(" "),
-    })),
+    gramless.map(({ ing, index }) => ({ index, text: lineText(ing) })),
+    {
+      title: recipe.title,
+      servings: recipe.servings || 1,
+      allLines: recipe.recipe_ingredients.map(lineText),
+    },
   );
 
   const gramsFor = (ing: RecipeIngredient, index: number) =>
