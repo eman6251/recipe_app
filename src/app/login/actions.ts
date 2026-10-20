@@ -16,10 +16,28 @@ function safeNext(raw: FormDataEntryValue | null): string {
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 
-function fail(message: string, next: string): never {
-  redirect(
-    `/login?error=${encodeURIComponent(message)}&next=${encodeURIComponent(next)}`,
-  );
+/**
+ * What the sign-in form shows after a submission.
+ *
+ * Returned to the page rather than redirected into the URL as it used to be.
+ * A redirect threw away everything typed, so a mistyped password meant
+ * entering the username again too — and it put the failure in browser history
+ * and server logs, which is a poor place for "wrong password".
+ */
+export type AuthState = {
+  error?: string;
+  message?: string;
+  /**
+   * Which input to mark. "credentials" covers both the identifier and the
+   * password, because a wrong sign-in deliberately doesn't say which was
+   * wrong — that's what stops the form being used to test whether an account
+   * exists.
+   */
+  field?: "credentials" | "username" | "email" | "password";
+};
+
+function fail(error: string, field?: AuthState["field"]): AuthState {
+  return { error, field };
 }
 
 /**
@@ -52,7 +70,7 @@ async function emailForUsername(username: string): Promise<string | null> {
   return data.user?.email ?? null;
 }
 
-export async function login(formData: FormData) {
+async function login(formData: FormData): Promise<AuthState> {
   const supabase = await createClient();
   const next = safeNext(formData.get("next"));
   const identifier = ((formData.get("identifier") as string) ?? "").trim();
@@ -64,25 +82,30 @@ export async function login(formData: FormData) {
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
       // A config gap, not a wrong password — saying so avoids sending people
       // to reset a password that was fine.
-      fail("Signing in by username isn't set up yet — use your email.", next);
+      return fail(
+        "Signing in by username isn't set up yet — use your email instead.",
+        "credentials",
+      );
     }
     const resolved = await emailForUsername(identifier.toLowerCase());
     if (!resolved) {
       // Same message either way, so this can't be used to test whether a
       // username exists.
-      fail("Those details didn't match an account.", next);
+      return fail("Those details didn't match an account.", "credentials");
     }
     email = resolved;
   }
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) fail("Those details didn't match an account.", next);
+  if (error) {
+    return fail("Those details didn't match an account.", "credentials");
+  }
 
   revalidatePath("/", "layout");
   redirect(next);
 }
 
-export async function signup(formData: FormData) {
+async function signup(formData: FormData): Promise<AuthState> {
   const supabase = await createClient();
   const next = safeNext(formData.get("next"));
   const email = ((formData.get("email") as string) ?? "").trim();
@@ -94,18 +117,18 @@ export async function signup(formData: FormData) {
   // Checked here as well as in the browser — the form is only a courtesy,
   // and this action is reachable without it.
   const weak = validatePassword(password, { username, email });
-  if (weak) fail(weak, next);
+  if (weak) return fail(weak, "password");
   if (await isBreachedPassword(password)) {
-    fail(
+    return fail(
       "That password has turned up in a known data breach — attackers try those first. Please pick another.",
-      next,
+      "password",
     );
   }
 
   if (!USERNAME_RE.test(username)) {
-    fail(
+    return fail(
       "Usernames are 3–20 characters, using letters, numbers and underscores.",
-      next,
+      "username",
     );
   }
 
@@ -115,7 +138,7 @@ export async function signup(formData: FormData) {
     .select("id")
     .eq("username", username)
     .maybeSingle();
-  if (taken) fail(`"${username}" is already taken.`, next);
+  if (taken) return fail(`"${username}" is already taken.`, "username");
 
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -123,15 +146,13 @@ export async function signup(formData: FormData) {
     options: { data: { username } },
   });
 
-  if (error) fail(error.message, next);
+  if (error) return fail(error.message, "email");
 
   // With email confirmation on, there's no session until the link is clicked.
   if (!data.session) {
-    redirect(
-      `/login?message=${encodeURIComponent(
-        "Check your email for a confirmation link, then sign in.",
-      )}`,
-    );
+    return {
+      message: "Check your email for a confirmation link, then sign in.",
+    };
   }
 
   revalidatePath("/", "layout");
@@ -164,6 +185,21 @@ export async function requestPasswordReset(formData: FormData) {
   });
 
   redirect(`/login/forgot?message=${encodeURIComponent(sent)}`);
+}
+
+/**
+ * The sign-in form's single entry point.
+ *
+ * One action rather than two because the form has one useActionState hook,
+ * and which mode it's in is a detail of the submission, not of the page.
+ */
+export async function authenticate(
+  _prev: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
+  return formData.get("mode") === "signup"
+    ? signup(formData)
+    : login(formData);
 }
 
 export async function signout() {
