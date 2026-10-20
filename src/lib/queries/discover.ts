@@ -42,6 +42,26 @@ export type HomeData = {
 const CARD_FIELDS =
   "id, title, image_url, tags, macros_per_serving, user_id, is_public, created_at";
 
+/**
+ * Fail loudly when the database can't be reached.
+ *
+ * These reads used to discard the error half of every Supabase response and
+ * carry on with whatever came back, which meant an unreachable backend was
+ * indistinguishable from an account with no recipes: the page waited out the
+ * connection timeout and then rendered an empty, cheerful home screen. People
+ * reasonably read that as "the app is slow and my recipes are gone" rather
+ * than "the server is down", and there was nothing anywhere to correct them.
+ */
+function orThrow<T>(
+  result: { data: T | null; error: { message: string } | null },
+  what: string,
+): T | null {
+  if (result.error) {
+    throw new Error(`Couldn't load ${what}: ${result.error.message}`);
+  }
+  return result.data;
+}
+
 export async function getHomeData(authorId?: string): Promise<HomeData> {
   const supabase = await createClient();
   const user = await getCurrentUser();
@@ -58,12 +78,15 @@ export async function getHomeData(authorId?: string): Promise<HomeData> {
   };
   if (!user) {
     // Signed out: RLS exposes only shared recipes, so browse those.
-    const [{ data: shared }, { data: anonProfiles }, { data: anonRatings }] =
-      await Promise.all([
-        supabase.from("recipes").select(CARD_FIELDS),
-        supabase.from("profiles").select("id, display_name"),
-        supabase.from("recipe_ratings").select("recipe_id, rating"),
-      ]);
+    const [sharedRes, anonProfilesRes, anonRatingsRes] = await Promise.all([
+      supabase.from("recipes").select(CARD_FIELDS),
+      supabase.from("profiles").select("id, display_name"),
+      supabase.from("recipe_ratings").select("recipe_id, rating"),
+    ]);
+
+    const shared = orThrow(sharedRes, "shared recipes");
+    const anonProfiles = orThrow(anonProfilesRes, "profiles");
+    const anonRatings = orThrow(anonRatingsRes, "ratings");
 
     const names = new Map(
       (anonProfiles ?? []).map((p) => [p.id, p.display_name as string]),
@@ -108,11 +131,11 @@ export async function getHomeData(authorId?: string): Promise<HomeData> {
   // batch had resolved — but nothing about *fetching* them depended on it, only
   // the joining afterwards. Two sequential round trips for no reason.
   const [
-    { data: visible },
-    { data: profiles },
-    { data: ratings },
-    { data: views },
-    { data: cooked },
+    visibleRes,
+    profilesRes,
+    ratingsRes,
+    viewsRes,
+    cookedRes,
   ] = await Promise.all([
     supabase.from("recipes").select(CARD_FIELDS),
     supabase.from("profiles").select("id, display_name"),
@@ -124,6 +147,12 @@ export async function getHomeData(authorId?: string): Promise<HomeData> {
       .limit(20),
     supabase.from("planned_meals").select("recipe_id").eq("cooked", true),
   ]);
+
+  const visible = orThrow(visibleRes, "your recipes");
+  const profiles = orThrow(profilesRes, "profiles");
+  const ratings = orThrow(ratingsRes, "ratings");
+  const views = orThrow(viewsRes, "recently viewed");
+  const cooked = orThrow(cookedRes, "cook history");
 
   const recipes = (visible ?? []) as RecipeRow[];
   if (recipes.length === 0) return empty;
