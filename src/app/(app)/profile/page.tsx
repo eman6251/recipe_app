@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SubmitButton } from "@/components/submit-button";
 import { cookies } from "next/headers";
 import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
@@ -109,12 +110,12 @@ export default async function ProfilePage({
           </label>
 
           <div>
-            <button
-              type="submit"
-              className="rounded-lg bg-amber-400 px-4 py-2 text-sm font-medium text-zinc-950 transition-colors hover:bg-amber-300"
+            <SubmitButton
+              pendingLabel="Saving…"
+              className="inline-flex items-center gap-2 rounded-lg bg-amber-400 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-amber-300"
             >
               Save profile
-            </button>
+            </SubmitButton>
           </div>
         </form>
 

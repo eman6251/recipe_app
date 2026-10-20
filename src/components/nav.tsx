@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SubmitButton } from "@/components/submit-button";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -275,13 +276,11 @@ export function Nav({
               )}
             </Link>
             <form action={signout}>
-              <button
-                type="submit"
+              <SubmitButton
                 aria-label="Sign out"
-                className="rounded-lg p-2 text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-              >
-                <LogOut className="h-5 w-5" />
-              </button>
+                icon={<LogOut className="h-5 w-5" />}
+                className="rounded-lg p-2 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              />
             </form>
               </>
             ) : (

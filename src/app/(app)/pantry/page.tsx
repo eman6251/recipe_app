@@ -1,4 +1,5 @@
 import { FolderPlus, Plus } from "lucide-react";
+import { SubmitButton } from "@/components/submit-button";
 import { PageHeader } from "@/components/page-header";
 import { listPantryCategories, listPantryItems } from "@/lib/queries/recipes";
 import { addPantryCategory, addPantryItem } from "./actions";
@@ -77,13 +78,13 @@ export default async function PantryPage() {
           </div>
 
           <div>
-            <button
-              type="submit"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-amber-400 px-4 py-2 text-sm font-medium text-zinc-950 transition-colors hover:bg-amber-300"
+            <SubmitButton
+              pendingLabel="Adding…"
+              icon={<Plus className="h-4 w-4" />}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-amber-400 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-amber-300"
             >
-              <Plus className="h-4 w-4" />
               Add staple
-            </button>
+            </SubmitButton>
           </div>
         </form>
 
@@ -101,13 +102,13 @@ export default async function PantryPage() {
               className={`${inputClass} w-56`}
             />
           </label>
-          <button
-            type="submit"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-black/10 px-3 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-black/5 dark:border-white/10 dark:text-zinc-400 dark:hover:bg-white/5"
+          <SubmitButton
+            pendingLabel="Adding…"
+            icon={<FolderPlus className="h-4 w-4" />}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-black/10 px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-black/5 dark:border-white/10 dark:text-zinc-400 dark:hover:bg-white/5"
           >
-            <FolderPlus className="h-4 w-4" />
             Add category
-          </button>
+          </SubmitButton>
         </form>
       </section>
 

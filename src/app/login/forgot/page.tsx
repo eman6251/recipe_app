@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SubmitButton } from "@/components/submit-button";
 import { ChefHat } from "lucide-react";
 import { requestPasswordReset } from "../actions";
 
@@ -52,12 +53,12 @@ export default async function ForgotPasswordPage({
             </span>
           </label>
 
-          <button
-            type="submit"
-            className="mt-2 rounded-lg bg-amber-400 px-4 py-2.5 text-sm font-medium text-zinc-950 transition-colors hover:bg-amber-300"
+          <SubmitButton
+            pendingLabel="Sending…"
+            className="mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-amber-400 px-4 py-2.5 text-sm font-medium text-zinc-950 hover:bg-amber-300"
           >
             Send reset link
-          </button>
+          </SubmitButton>
         </form>
 
         <p className="mt-4 text-center text-sm text-zinc-500 dark:text-zinc-400">

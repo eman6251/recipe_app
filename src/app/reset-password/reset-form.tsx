@@ -1,6 +1,7 @@
 "use client";
 
 import { MIN_PASSWORD_LENGTH, PASSWORD_HINT } from "@/lib/password";
+import { SubmitButton } from "@/components/submit-button";
 import { updatePassword } from "./actions";
 
 const inputClass =
@@ -67,12 +68,12 @@ export function ResetPasswordForm({
         />
       </label>
 
-      <button
-        type="submit"
-        className="mt-2 rounded-lg bg-amber-400 px-4 py-2.5 text-sm font-medium text-zinc-950 transition-colors hover:bg-amber-300"
+      <SubmitButton
+        pendingLabel="Updating…"
+        className="mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-amber-400 px-4 py-2.5 text-sm font-medium text-zinc-950 hover:bg-amber-300"
       >
         Update password
-      </button>
+      </SubmitButton>
     </form>
   );
 }
