@@ -27,7 +27,7 @@ export default async function ProfilePage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("username, display_name, avatar_url, share_new_recipes")
+    .select("username, display_name, avatar_url, share_new_recipes, daily_calorie_goal")
     .eq("id", user?.id ?? "")
     .maybeSingle();
 
@@ -88,6 +88,26 @@ export default async function ProfilePage({
             />
             <span className="text-xs text-zinc-500 dark:text-zinc-400">
               Shown as the author on recipes you share. Your email never is.
+            </span>
+          </label>
+
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium">Daily calorie goal</span>
+            <input
+              name="daily_calorie_goal"
+              type="number"
+              inputMode="numeric"
+              min={500}
+              max={10000}
+              step={50}
+              placeholder="e.g. 2200"
+              defaultValue={profile?.daily_calorie_goal ?? ""}
+              className={`${inputClass} w-40`}
+            />
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+              This Week compares your prepped meals against it, multiplied out
+              across the seven days. Leave it empty if you&apos;d rather not
+              see one.
             </span>
           </label>
 

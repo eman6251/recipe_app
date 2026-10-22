@@ -13,6 +13,21 @@ export async function updateProfile(formData: FormData) {
     .toLowerCase();
   const shareNew = formData.get("share_new_recipes") === "on";
 
+  // Blank clears the goal rather than storing zero — "not counting" and
+  // "counting, target zero" are different states and only one is meaningful.
+  const goalRaw = ((formData.get("daily_calorie_goal") as string) ?? "").trim();
+  const goalNumber = goalRaw ? Number(goalRaw) : null;
+  if (
+    goalNumber !== null &&
+    (!Number.isFinite(goalNumber) || goalNumber < 500 || goalNumber > 10000)
+  ) {
+    redirect(
+      "/profile?error=" +
+        encodeURIComponent("Daily calorie goal should be between 500 and 10,000."),
+    );
+  }
+  const dailyCalorieGoal = goalNumber === null ? null : Math.round(goalNumber);
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -48,11 +63,13 @@ export async function updateProfile(formData: FormData) {
       ...(username ? { username } : {}),
       ...(displayName ? { display_name: displayName } : {}),
       share_new_recipes: shareNew,
+      daily_calorie_goal: dailyCalorieGoal,
     })
     .eq("id", user.id);
 
   revalidatePath("/profile");
   revalidatePath("/");
+  revalidatePath("/week");
   redirect("/profile?message=" + encodeURIComponent("Profile saved."));
 }
 
@@ -77,5 +94,6 @@ export async function setAvatar(url: string): Promise<{ error?: string }> {
 
   revalidatePath("/profile");
   revalidatePath("/");
+  revalidatePath("/week");
   return {};
 }

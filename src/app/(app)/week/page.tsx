@@ -1,6 +1,8 @@
 import { PageHeader } from "@/components/page-header";
 import { addDays, fromISODate, startOfWeek, toISODate } from "@/lib/dates";
 import { listPlannedMeals, listRecipeOptions } from "@/lib/queries/planner";
+import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/user";
 import { WeekView } from "./week-view";
 
 export default async function WeekPage({
@@ -18,9 +20,17 @@ export default async function WeekPage({
   const from = toISODate(weekStart);
   const to = toISODate(addDays(weekStart, 6));
 
-  const [meals, recipes] = await Promise.all([
+  const supabase = await createClient();
+  const user = await getCurrentUser();
+
+  const [meals, recipes, { data: profile }] = await Promise.all([
     listPlannedMeals(from, to),
     listRecipeOptions(),
+    supabase
+      .from("profiles")
+      .select("daily_calorie_goal")
+      .eq("id", user?.id ?? "")
+      .maybeSingle(),
   ]);
 
   return (
@@ -38,11 +48,19 @@ export default async function WeekPage({
             isn&apos;t reported as starvation. Recipes without computed macros are
             called out rather than silently counted as zero. Macros are
             estimates and this part of the app is still being refined, so treat
-            weekly totals as a guide.
+            weekly totals as a guide. Set a{" "}
+            <strong>daily calorie goal</strong> in your profile and the week&apos;s
+            prepped calories are shown against seven days of it, with whatever
+            is left over — the room you have for snacks, drinks and meals out.
           </>
         }
       />
-      <WeekView weekStart={from} meals={meals} recipes={recipes} />
+      <WeekView
+        weekStart={from}
+        meals={meals}
+        recipes={recipes}
+        dailyCalorieGoal={profile?.daily_calorie_goal ?? null}
+      />
     </>
   );
 }

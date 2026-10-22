@@ -51,10 +51,13 @@ export function WeekView({
   weekStart,
   meals,
   recipes,
+  dailyCalorieGoal,
 }: {
   weekStart: string; // YYYY-MM-DD of week start
   meals: PlannedMealWithRecipe[];
   recipes: RecipeOption[];
+  /** From the profile; null when nobody has set one. */
+  dailyCalorieGoal: number | null;
 }) {
   const [dialogDate, setDialogDate] = useState<string | null>(null);
   const [, startTransition] = useTransition();
@@ -95,6 +98,22 @@ export function WeekView({
           fat_g: weekTotal.fat_g / daysWithMeals,
         }
       : ZERO;
+
+  /*
+   * Prepped calories against the week's target.
+   *
+   * The goal is stored per day because that's the number people are given,
+   * and multiplied by seven here rather than by days-with-meals: the question
+   * being answered is "how much of my week have I already cooked", and the
+   * days you haven't planned still count against the week's budget.
+   *
+   * Leftover room is the point, not an afterthought — meals out, snacks and
+   * drinks all come out of the same allowance, so the difference is what
+   * tells you whether the plan leaves space for them.
+   */
+  const weeklyGoal = dailyCalorieGoal != null ? dailyCalorieGoal * 7 : null;
+  const prepped = Math.round(weekTotal.kcal);
+  const leeway = weeklyGoal != null ? weeklyGoal - prepped : null;
 
   // One entry per distinct recipe in the week, with its total portions.
   // A recipe counts as cooked once every planned portion is checked off.
@@ -163,19 +182,61 @@ export function WeekView({
 
       {/* Week macro summary */}
       <section className="mb-6 rounded-xl border border-black/10 bg-surface p-5 dark:border-white/10">
-        <div className="flex items-center gap-2">
-          <Flame className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-          <h3 className="text-sm font-semibold">Week macros</h3>
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <div className="flex items-center gap-2">
+            <Flame className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <h3 className="text-sm font-semibold">Week macros</h3>
+          </div>
+
+          {weeklyGoal != null && leeway != null ? (
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <span className="text-lg font-semibold tabular-nums">
+                {prepped.toLocaleString()}
+                <span className="text-zinc-400 dark:text-zinc-500">
+                  /{weeklyGoal.toLocaleString()}
+                </span>
+              </span>
+              <span
+                className={`text-xs font-medium ${
+                  leeway >= 0
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-red-600 dark:text-red-400"
+                }`}
+              >
+                {leeway >= 0
+                  ? `${leeway.toLocaleString()} left`
+                  : `${Math.abs(leeway).toLocaleString()} over`}
+              </span>
+              <span className="w-full text-[11px] text-zinc-400 dark:text-zinc-500">
+                prepped kcal vs {dailyCalorieGoal!.toLocaleString()}/day × 7
+              </span>
+            </div>
+          ) : null}
         </div>
         <div className="mt-3 flex flex-col gap-1.5">
           <MacroStrip m={avg} label="Daily average:" />
           <MacroStrip m={weekTotal} label="Week total:" />
         </div>
+        {weeklyGoal == null ? (
+          <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+            <Link
+              href="/profile"
+              className="text-amber-600 underline-offset-2 hover:underline dark:text-amber-400"
+            >
+              Set a daily calorie goal
+            </Link>{" "}
+            and this week&apos;s prep will be shown against it.
+          </p>
+        ) : null}
+
         {missingMacros > 0 ? (
           <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
             {missingMacros} planned {missingMacros === 1 ? "meal has" : "meals have"}{" "}
             no macro data — open the recipe and hit “Compute macros” to include{" "}
             {missingMacros === 1 ? "it" : "them"}.
+            {weeklyGoal != null
+              ? " Until then the total above is low, so there's less room left than it says."
+              : ""}
           </p>
         ) : null}
       </section>
