@@ -2,17 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { CircleAlert, RotateCcw, ShoppingCart } from "lucide-react";
-import { fromISODate } from "@/lib/dates";
+import { RotateCcw, ShoppingCart } from "lucide-react";
 import type { PortionChoice, ShoppingLine } from "@/lib/shopping";
 import { PortionChoices } from "./portion-choices";
-
-function shortDate(iso: string): string {
-  return fromISODate(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-}
 
 /**
  * Persist checked items in localStorage — no server round trip needed.
@@ -57,20 +49,24 @@ function useCheckedItems(storageKey: string) {
 export function ShoppingList({
   toBuy,
   covered,
-  cookedCount,
-  stale,
+  skipped,
   choices,
 }: {
   toBuy: ShoppingLine[];
   covered: ShoppingLine[];
-  /** Batches left off because they're ticked as cooked; drives the empty state. */
-  cookedCount: number;
-  /** Uncooked, but every planned day has passed. */
-  stale: { title: string; cookedOn: string }[];
+  /** Counts of what was left off, and why. */
+  skipped: { cooked: number; past: number };
   /** Batches planned for less than one full recipe. */
   choices: PortionChoice[];
 }) {
   const { checked, toggle, reset } = useCheckedItems("shopping-checked");
+
+  const skippedParts = [
+    skipped.cooked > 0 ? `${skipped.cooked} already cooked` : null,
+    skipped.past > 0 ? `${skipped.past} past their cook day` : null,
+  ].filter(Boolean);
+  const skippedNote =
+    skippedParts.length > 0 ? `Left off: ${skippedParts.join(", ")}` : null;
   const remaining = toBuy.filter((l) => !checked.has(l.key)).length;
 
   // Ticked items sink to the bottom, so what's left to find is always at the
@@ -86,33 +82,14 @@ export function ShoppingList({
     <>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">Still to cook</h2>
-        {cookedCount > 0 ? (
+        {/* One quiet line, so a recipe you planned and can't find here has a
+            visible reason rather than looking lost. */}
+        {skippedNote ? (
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            {cookedCount} {cookedCount === 1 ? "recipe" : "recipes"} already
-            ticked as cooked, so left off
+            {skippedNote}
           </p>
         ) : null}
       </div>
-
-      {stale.length > 0 ? (
-        <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-amber-400/40 bg-amber-400/5 px-4 py-3 text-sm">
-          <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-          <p className="text-zinc-600 dark:text-zinc-400">
-            Still listed although every day planned for{" "}
-            {stale.length === 1 ? "it" : "them"} has passed:{" "}
-            {stale.map((b, i) => (
-              <span key={`${b.title}-${b.cookedOn}`}>
-                {i > 0 ? ", " : ""}
-                <span className="font-medium text-foreground">{b.title}</span>{" "}
-                ({shortDate(b.cookedOn)})
-              </span>
-            ))}
-            . Tick {stale.length === 1 ? "it" : "them"} off in This Week if
-            already cooked, or move {stale.length === 1 ? "it" : "them"} on the
-            calendar.
-          </p>
-        </div>
-      ) : null}
 
       <PortionChoices choices={choices} />
 
@@ -120,8 +97,8 @@ export function ShoppingList({
         <div className="rounded-xl border border-dashed border-black/15 bg-surface/60 p-10 text-center dark:border-white/15">
           <p className="font-medium">Nothing to buy</p>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            {cookedCount > 0 || covered.length > 0 ? (
-              "Everything you've planned is either cooked already or covered by your pantry staples."
+            {skipped.cooked > 0 || skipped.past > 0 || covered.length > 0 ? (
+              "Everything still ahead of you is either cooked already or covered by your pantry staples."
             ) : (
               <>
                 <Link

@@ -141,14 +141,13 @@ export type PortionChoice = {
 
 export type FlattenedPlan = {
   ingredients: ShoppingIngredientInput[];
-  /** Batches left off because they're already ticked as cooked. */
-  cookedCount: number;
-  /**
-   * Still uncooked, but every day it was planned for has passed. Surfaced
-   * rather than dropped: it's either a cook that slipped, or a tick that was
-   * never made, and only the cook knows which.
-   */
-  stale: { title: string; cookedOn: string }[];
+  /** Why batches were left off, for a one-line account of the omissions. */
+  skipped: {
+    /** Ticked as cooked. */
+    cooked: number;
+    /** Due to be cooked on a day that has passed. */
+    past: number;
+  };
   /** Under-filled batches, for the "whole recipe or just these?" prompt. */
   choices: PortionChoice[];
 };
@@ -171,25 +170,32 @@ export type FlattenedPlan = {
  */
 export function flattenPlannedMeals(
   planned: PlannedMealWithFullRecipe[],
-  /** Today, as YYYY-MM-DD — only used to spot batches whose days have gone. */
+  /** Today, as YYYY-MM-DD. Cooks before this are behind you. */
   today: string,
 ): FlattenedPlan {
   const out: ShoppingIngredientInput[] = [];
-  const stale: FlattenedPlan["stale"] = [];
   const choices: PortionChoice[] = [];
-  let cookedCount = 0;
+  const skipped = { cooked: 0, past: 0 };
 
   for (const batch of groupIntoBatches(planned)) {
-    // The cooked tick is now the only thing that takes a batch off the list,
-    // which makes it load-bearing: an untended checkbox leaves ingredients
-    // here indefinitely. Hence the stale list below.
     if (batch.cooked) {
-      cookedCount++;
+      skipped.cooked++;
       continue;
     }
 
-    if (batch.lastDay < today) {
-      stale.push({ title: batch.recipe.title, cookedOn: batch.cookedOn });
+    /*
+     * A cook day that has already gone is behind you whether or not anyone
+     * ticked it, and the tick has only ever been optional. Without this, a
+     * history of not ticking things off piles every meal ever planned onto
+     * the list, which is worse than useless — it buries the fortnight you
+     * actually need to shop for.
+     *
+     * Judged on the cook day rather than the last day it's eaten: you shop
+     * for a cook, and a cook in the past is either done or abandoned.
+     */
+    if (batch.cookedOn < today) {
+      skipped.past++;
+      continue;
     }
 
     const { recipe } = batch;
@@ -235,7 +241,7 @@ export function flattenPlannedMeals(
     }
   }
 
-  return { ingredients: out, cookedCount, stale, choices };
+  return { ingredients: out, skipped, choices };
 }
 
 /** Merge same-unit quantity fragments; different units are shown side by side. */

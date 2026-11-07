@@ -12,23 +12,20 @@ export default async function ShoppingPage() {
   const today = toISODate(now);
 
   /*
-   * A window rather than everything ever planned: the query has to be bounded
-   * somewhere, and sixty days each way is far past how far ahead anyone
-   * plans dinners. The back half matters too — a batch planned for last week
-   * and never cooked is still food you haven't bought.
+   * Forward sixty days, which is well past how far ahead anyone plans
+   * dinners. The fortnight of lookback isn't for shopping — past cooks are
+   * dropped — but for batching: a run that began last Thursday has to be seen
+   * whole to know it began then, and therefore that it's behind us.
    */
   const [planned, pantry] = await Promise.all([
     listPlannedMealsWithIngredients(
-      toISODate(addDays(now, -60)),
+      toISODate(addDays(now, -14)),
       toISODate(addDays(now, 60)),
     ),
     listPantryItems(),
   ]);
 
-  const { ingredients, cookedCount, stale, choices } = flattenPlannedMeals(
-    planned,
-    today,
-  );
+  const { ingredients, skipped, choices } = flattenPlannedMeals(planned, today);
   // Merge names for the same product ("scallions" + "green onions") so their
   // quantities add up into one line instead of listing separately.
   const aliases = await resolveIngredientAliases(
@@ -45,8 +42,8 @@ export default async function ShoppingPage() {
           <>
             Everything you&apos;ve planned and not yet cooked, in one list —
             not split by week, because a shop is a trip and a trip doesn&apos;t
-            respect Sunday. Ticking a recipe as cooked, on the calendar or in
-            This Week, is what takes it off here. More portions than the
+            respect Sunday. A recipe drops off once you tick it as cooked, and
+            in any case once its cook day has passed. More portions than the
             recipe makes buys more; <em>fewer</em> still buys the whole recipe,
             since you can&apos;t cook a quarter of a stew — though you can
             switch any of those to the smaller amount where the recipe
@@ -63,8 +60,7 @@ export default async function ShoppingPage() {
         choices={choices}
         toBuy={toBuy}
         covered={covered}
-        cookedCount={cookedCount}
-        stale={stale}
+        skipped={skipped}
       />
     </>
   );
