@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/page-header";
+import { createClient } from "@/lib/supabase/server";
 import { addDays, toISODate } from "@/lib/dates";
 import { listPantryItems } from "@/lib/queries/recipes";
 import { listPlannedMealsWithIngredients } from "@/lib/queries/planner";
@@ -17,12 +18,17 @@ export default async function ShoppingPage() {
    * dropped — but for batching: a run that began last Thursday has to be seen
    * whole to know it began then, and therefore that it's behind us.
    */
-  const [planned, pantry] = await Promise.all([
+  const supabase = await createClient();
+
+  const [planned, pantry, { data: checkRows }] = await Promise.all([
     listPlannedMealsWithIngredients(
       toISODate(addDays(now, -14)),
       toISODate(addDays(now, 60)),
     ),
     listPantryItems(),
+    // Tolerant on purpose: a tick that can't be read means an unticked list,
+    // which is a slower shop. Failing the whole page over it would be worse.
+    supabase.from("shopping_checks").select("item_key"),
   ]);
 
   const { ingredients, skipped, choices } = flattenPlannedMeals(planned, today);
@@ -51,12 +57,14 @@ export default async function ShoppingPage() {
             &ldquo;scallions&rdquo; from one recipe and &ldquo;green
             onions&rdquo; from another become one line. Anything in your{" "}
             <strong>pantry</strong> is left off unless what you&apos;ve
-            planned would run you out. Check items off as you shop — ticks stay
-            on this device until you reset them.
+            planned would run you out. Check items off as you shop — ticks are saved to
+            your account, so what you cross off on a laptop is already crossed
+            off on your phone.
           </>
         }
       />
       <ShoppingList
+        initialChecked={(checkRows ?? []).map((r) => r.item_key as string)}
         choices={choices}
         toBuy={toBuy}
         covered={covered}

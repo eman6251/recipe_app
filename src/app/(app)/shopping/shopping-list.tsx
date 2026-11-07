@@ -1,57 +1,68 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { RotateCcw, ShoppingCart } from "lucide-react";
 import type { PortionChoice, ShoppingLine } from "@/lib/shopping";
 import { PortionChoices } from "./portion-choices";
+import { resetChecks, setItemChecked } from "./check-actions";
 
 /**
- * Persist checked items in localStorage — no server round trip needed.
+ * Ticks, held locally and written through to the account.
  *
- * One key rather than one per week, now that the list isn't weekly. Ticks
- * therefore outlive a shop and need the Reset button, which is the trade for
- * being able to tick something off on the way round and not lose it when the
- * page re-renders with a recipe newly marked cooked.
+ * They used to live in localStorage, which is per-browser: the laptop you
+ * planned on and the phone in your hand disagreed about what was already in
+ * the basket. Seeded from the server now, so a phone opens showing what the
+ * laptop crossed off.
+ *
+ * The local set still leads and the write follows behind it. A checkbox that
+ * waits on a round trip feels broken in a supermarket on one bar of signal,
+ * and the tick is cheap to put back: a failed write reverts it rather than
+ * leaving the screen and the account quietly disagreeing.
+ *
+ * Seeded once, at mount. A tick made on another device mid-shop shows up on
+ * the next load rather than arriving live, which suits a list two people
+ * rarely hold at the same moment.
  */
-function useCheckedItems(storageKey: string) {
-  const [checked, setChecked] = useState<Set<string>>(new Set());
-  const [loaded, setLoaded] = useState(false);
+function useCheckedItems(initial: string[]) {
+  const [checked, setChecked] = useState<Set<string>>(() => new Set(initial));
 
-  useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(storageKey);
-      setChecked(raw ? new Set(JSON.parse(raw)) : new Set());
-    } catch {
-      setChecked(new Set());
-    }
-    setLoaded(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storageKey]);
-
-  useEffect(() => {
-    if (!loaded) return; // don't overwrite storage with the initial empty state
-    window.localStorage.setItem(storageKey, JSON.stringify([...checked]));
-  }, [checked, loaded, storageKey]);
-
-  const toggle = (key: string) => {
+  const apply = (key: string, on: boolean) =>
     setChecked((prev) => {
       const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
+      if (on) next.add(key);
+      else next.delete(key);
       return next;
+    });
+
+  const toggle = (key: string) => {
+    const on = !checked.has(key);
+    apply(key, on);
+    setItemChecked(key, on).then((result) => {
+      if (result?.error) apply(key, !on);
     });
   };
 
-  return { checked, toggle, reset: () => setChecked(new Set()) };
+  const reset = () => {
+    const previous = checked;
+    setChecked(new Set());
+    resetChecks().then((result) => {
+      if (result?.error) setChecked(previous);
+    });
+  };
+
+  return { checked, toggle, reset };
 }
 
 export function ShoppingList({
+  initialChecked,
   toBuy,
   covered,
   skipped,
   choices,
 }: {
+  /** Item keys already ticked, read from the account on the server. */
+  initialChecked: string[];
   toBuy: ShoppingLine[];
   covered: ShoppingLine[];
   /** Counts of what was left off, and why. */
@@ -59,7 +70,7 @@ export function ShoppingList({
   /** Batches planned for less than one full recipe. */
   choices: PortionChoice[];
 }) {
-  const { checked, toggle, reset } = useCheckedItems("shopping-checked");
+  const { checked, toggle, reset } = useCheckedItems(initialChecked);
 
   const skippedParts = [
     skipped.cooked > 0 ? `${skipped.cooked} already cooked` : null,
