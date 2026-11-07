@@ -84,26 +84,51 @@ export function WeekView({
     list.sort((a, b) => SLOT_ORDER[a.meal_slot] - SLOT_ORDER[b.meal_slot]);
   }
 
-  // Week totals
+  /*
+   * What counts as a day worth averaging.
+   *
+   * Filled meal slots rather than planned rows, and three rather than four,
+   * because dessert isn't an everyday thing — breakfast, lunch and dinner is
+   * a complete day. Two dishes at the same dinner is still one meal.
+   *
+   * A day with a single lunch on it isn't a light day of eating, it's a day
+   * that hasn't been planned yet, and averaging it in reports the week as
+   * leaner than anyone intends to eat.
+   */
+  const FULL_DAY_SLOTS = 3;
+
+  const isFullDay = (dayMeals: PlannedMealWithRecipe[]) =>
+    new Set(dayMeals.map((m) => m.meal_slot)).size >= FULL_DAY_SLOTS;
+
+  // Week totals cover everything planned — you eat the partial days too.
+  // Only the average is restricted to the days that represent a full one.
   let weekTotal = ZERO;
+  let fullDayTotal = ZERO;
+  let fullDays = 0;
   let daysWithMeals = 0;
   let missingMacros = 0;
   for (const day of days) {
     const dayMeals = byDate.get(toISODate(day)) ?? [];
     if (dayMeals.length > 0) daysWithMeals++;
+    const counts = isFullDay(dayMeals);
+    if (counts) fullDays++;
     for (const meal of dayMeals) {
       const m = mealMacros(meal);
-      if (m) weekTotal = sum(weekTotal, m);
-      else missingMacros++;
+      if (m) {
+        weekTotal = sum(weekTotal, m);
+        if (counts) fullDayTotal = sum(fullDayTotal, m);
+      } else {
+        missingMacros++;
+      }
     }
   }
   const avg =
-    daysWithMeals > 0
+    fullDays > 0
       ? {
-          kcal: weekTotal.kcal / daysWithMeals,
-          protein_g: weekTotal.protein_g / daysWithMeals,
-          carbs_g: weekTotal.carbs_g / daysWithMeals,
-          fat_g: weekTotal.fat_g / daysWithMeals,
+          kcal: fullDayTotal.kcal / fullDays,
+          protein_g: fullDayTotal.protein_g / fullDays,
+          carbs_g: fullDayTotal.carbs_g / fullDays,
+          fat_g: fullDayTotal.fat_g / fullDays,
         }
       : ZERO;
 
@@ -240,7 +265,7 @@ export function WeekView({
               <span className="w-full text-[11px] text-zinc-400 dark:text-zinc-500">
                 {perWeek
                   ? `prepped kcal vs ${dailyCalorieGoal!.toLocaleString()}/day × 7`
-                  : `prepped kcal per planned day vs ${dailyCalorieGoal!.toLocaleString()}/day`}
+                  : `prepped kcal per fully planned day vs ${dailyCalorieGoal!.toLocaleString()}/day`}
               </span>
             </div>
           ) : null}
@@ -251,9 +276,9 @@ export function WeekView({
             caption={
               perWeek
                 ? "Across the whole week"
-                : `Averaged over ${daysWithMeals} ${
-                    daysWithMeals === 1 ? "planned day" : "planned days"
-                  }`
+                : `Averaged over ${fullDays} fully planned ${
+                    fullDays === 1 ? "day" : "days"
+                  } (3+ meals)`
             }
           />
           <div className="flex flex-col gap-1.5">
@@ -267,6 +292,14 @@ export function WeekView({
             />
           </div>
         </div>
+        {!perWeek && fullDays === 0 ? (
+          <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+            {daysWithMeals === 0
+              ? "Nothing planned this week yet."
+              : `No day this week has ${FULL_DAY_SLOTS} or more meals on it, so there's no full day to average. Week totals still count everything planned.`}
+          </p>
+        ) : null}
+
         {goal == null ? (
           <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
             <Link

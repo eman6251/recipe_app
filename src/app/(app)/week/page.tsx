@@ -43,9 +43,13 @@ export default async function WeekPage({
             The <strong>prep list</strong> at the top has one row per recipe,
             however many days it&apos;s spread across — you cook a batch once, so
             you check it off once. Macros come from each recipe&apos;s computed
-            per-serving values times the portions planned; the daily average
-            divides by days that actually have meals, so a half-planned week
-            isn&apos;t reported as starvation. Recipes without computed macros are
+            per-serving values times the portions planned. The{" "}
+            <strong>daily average</strong> counts only days with three or more
+            meals on them — a day with a single lunch planned isn&apos;t a light
+            day of eating, it&apos;s a day you haven&apos;t finished planning, and
+            averaging it in reports the week as leaner than you intend to eat.
+            Three rather than four because dessert isn&apos;t an everyday thing.
+            Week totals still count everything. Recipes without computed macros are
             called out rather than silently counted as zero. Macros are
             estimates and this part of the app is still being refined, so treat
             weekly totals as a guide. Set a{" "}
