@@ -57,7 +57,7 @@ export async function updateProfile(formData: FormData) {
     }
   }
 
-  await supabase
+  const { error } = await supabase
     .from("profiles")
     .update({
       ...(username ? { username } : {}),
@@ -66,6 +66,16 @@ export async function updateProfile(formData: FormData) {
       daily_calorie_goal: dailyCalorieGoal,
     })
     .eq("id", user.id);
+
+  // A failed write used to redirect to "Profile saved." all the same, which
+  // is the worst thing a save button can do: the next page load shows the old
+  // values and the only available explanation is that you imagined typing.
+  if (error) {
+    redirect(
+      "/profile?error=" +
+        encodeURIComponent(`Couldn't save your profile: ${error.message}`),
+    );
+  }
 
   revalidatePath("/profile");
   revalidatePath("/");

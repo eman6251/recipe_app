@@ -25,11 +25,18 @@ export default async function ProfilePage({
   const stored = (await cookies()).get(THEME_COOKIE)?.value;
   const themeChoice = isThemeChoice(stored) ? stored : "system";
 
-  const { data: profile } = await supabase
+  // Thrown rather than swallowed. Discarding this renders every field empty,
+  // which looks exactly like an account with nothing filled in — and saving
+  // from that form would then write the blanks back over the real values.
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("username, display_name, avatar_url, share_new_recipes, daily_calorie_goal")
     .eq("id", user?.id ?? "")
     .maybeSingle();
+
+  if (profileError) {
+    throw new Error(`Couldn't load your profile: ${profileError.message}`);
+  }
 
   return (
     <>

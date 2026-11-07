@@ -23,6 +23,9 @@ export default async function WeekPage({
   const supabase = await createClient();
   const user = await getCurrentUser();
 
+  // Deliberately tolerant, unlike the profile page: a goal that can't be read
+  // means no goal line, which costs nothing. Failing the whole week's plan
+  // over an optional target would be the wrong trade.
   const [meals, recipes, { data: profile }] = await Promise.all([
     listPlannedMeals(from, to),
     listRecipeOptions(),
