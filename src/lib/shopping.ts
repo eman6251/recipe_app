@@ -141,20 +141,27 @@ export type PortionChoice = {
 
 export type FlattenedPlan = {
   ingredients: ShoppingIngredientInput[];
-  /** Batches left off because they were cooked before the week started. */
-  carriedOver: { title: string; cookedOn: string; portions: number }[];
+  /** Batches left off because they're already ticked as cooked. */
+  cookedCount: number;
+  /**
+   * Still uncooked, but every day it was planned for has passed. Surfaced
+   * rather than dropped: it's either a cook that slipped, or a tick that was
+   * never made, and only the cook knows which.
+   */
+  stale: { title: string; cookedOn: string }[];
   /** Under-filled batches, for the "whole recipe or just these?" prompt. */
   choices: PortionChoice[];
 };
 
 /**
- * Expand the batches you'll actually cook this week into ingredient lines.
+ * Expand every batch you haven't cooked yet into ingredient lines.
  *
- * A batch's ingredients belong to the week it's cooked in — its first planned
- * day. Portions eaten this week from a batch cooked last week are leftovers
- * already sitting in the fridge, so listing their ingredients again just means
- * crossing them out at the store. The mirror of that: a batch cooked on
- * Saturday and eaten into next week is bought in full now.
+ * Not divided by week, deliberately. A shopping list is a trip, and a trip
+ * doesn't respect Sunday: prepping on a Saturday with one more dish to cook
+ * on the Sunday is one shop, and splitting it across two weekly lists meant
+ * going to the shop twice or merging them in your head. What decides whether
+ * something is on the list is whether it's been cooked, not which calendar
+ * week it landed in.
  *
  * Aggregated per batch rather than per planned day. Scaling each day's portion
  * separately both over-counted (a recipe planned across more days kept adding
@@ -164,31 +171,25 @@ export type FlattenedPlan = {
  */
 export function flattenPlannedMeals(
   planned: PlannedMealWithFullRecipe[],
-  /** The week being shopped for; portions outside it only inform batching. */
-  week?: { from: string; to: string },
+  /** Today, as YYYY-MM-DD — only used to spot batches whose days have gone. */
+  today: string,
 ): FlattenedPlan {
   const out: ShoppingIngredientInput[] = [];
-  const carriedOver: FlattenedPlan["carriedOver"] = [];
+  const stale: FlattenedPlan["stale"] = [];
   const choices: PortionChoice[] = [];
+  let cookedCount = 0;
 
   for (const batch of groupIntoBatches(planned)) {
-    if (week) {
-      // Cooked after the week ends — that's next week's shop.
-      if (batch.cookedOn > week.to) continue;
+    // The cooked tick is now the only thing that takes a batch off the list,
+    // which makes it load-bearing: an untended checkbox leaves ingredients
+    // here indefinitely. Hence the stale list below.
+    if (batch.cooked) {
+      cookedCount++;
+      continue;
+    }
 
-      const alreadyCooked = batch.cookedOn < week.from || batch.cooked;
-      if (alreadyCooked) {
-        // Only worth mentioning if you're actually eating it this week; the
-        // window reaches back further than that to find where batches began.
-        if (batch.lastDay >= week.from) {
-          carriedOver.push({
-            title: batch.recipe.title,
-            cookedOn: batch.cookedOn,
-            portions: batch.portions,
-          });
-        }
-        continue;
-      }
+    if (batch.lastDay < today) {
+      stale.push({ title: batch.recipe.title, cookedOn: batch.cookedOn });
     }
 
     const { recipe } = batch;
@@ -234,7 +235,7 @@ export function flattenPlannedMeals(
     }
   }
 
-  return { ingredients: out, carriedOver, choices };
+  return { ingredients: out, cookedCount, stale, choices };
 }
 
 /** Merge same-unit quantity fragments; different units are shown side by side. */

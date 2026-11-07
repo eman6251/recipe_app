@@ -212,7 +212,7 @@ export function WeekView({
             <ChevronRight className="h-4 w-4" />
           </Link>
           <Link
-            href={`/shopping?start=${weekStart}`}
+            href="/shopping"
             className="ml-2 inline-flex items-center gap-1.5 rounded-lg border border-black/10 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-black/5 dark:border-white/10 dark:text-zinc-400 dark:hover:bg-white/5"
           >
             <ShoppingCart className="h-3.5 w-3.5" />

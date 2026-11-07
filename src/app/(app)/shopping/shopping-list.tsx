@@ -2,23 +2,26 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  ChevronLeft,
-  ChevronRight,
-  RotateCcw,
-  ShoppingCart,
-} from "lucide-react";
-import { addDays, fromISODate, toISODate } from "@/lib/dates";
+import { CircleAlert, RotateCcw, ShoppingCart } from "lucide-react";
+import { fromISODate } from "@/lib/dates";
 import type { PortionChoice, ShoppingLine } from "@/lib/shopping";
 import { PortionChoices } from "./portion-choices";
 
-function weekRangeLabel(weekStart: Date): string {
-  const fmt = (d: Date) =>
-    d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  return `${fmt(weekStart)} – ${fmt(addDays(weekStart, 6))}`;
+function shortDate(iso: string): string {
+  return fromISODate(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
 }
 
-/** Persist checked items per-week in localStorage — no server round trip needed. */
+/**
+ * Persist checked items in localStorage — no server round trip needed.
+ *
+ * One key rather than one per week, now that the list isn't weekly. Ticks
+ * therefore outlive a shop and need the Reset button, which is the trade for
+ * being able to tick something off on the way round and not lose it when the
+ * page re-renders with a recipe newly marked cooked.
+ */
 function useCheckedItems(storageKey: string) {
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
@@ -52,27 +55,22 @@ function useCheckedItems(storageKey: string) {
 }
 
 export function ShoppingList({
-  weekStart,
-  mealCount,
   toBuy,
   covered,
-  carriedOverCount,
+  cookedCount,
+  stale,
   choices,
 }: {
-  weekStart: string; // YYYY-MM-DD
-  mealCount: number;
   toBuy: ShoppingLine[];
   covered: ShoppingLine[];
-  /** Batches left off because they were already cooked; drives the empty state. */
-  carriedOverCount: number;
+  /** Batches left off because they're ticked as cooked; drives the empty state. */
+  cookedCount: number;
+  /** Uncooked, but every planned day has passed. */
+  stale: { title: string; cookedOn: string }[];
   /** Batches planned for less than one full recipe. */
   choices: PortionChoice[];
 }) {
-  const start = fromISODate(weekStart);
-  const prevWeekStart = toISODate(addDays(start, -7));
-  const nextWeekStart = toISODate(addDays(start, 7));
-
-  const { checked, toggle, reset } = useCheckedItems(`shopping-checked:${weekStart}`);
+  const { checked, toggle, reset } = useCheckedItems("shopping-checked");
   const remaining = toBuy.filter((l) => !checked.has(l.key)).length;
 
   // Ticked items sink to the bottom, so what's left to find is always at the
@@ -86,54 +84,55 @@ export function ShoppingList({
 
   return (
     <>
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold">{weekRangeLabel(start)}</h2>
-        <div className="flex items-center gap-1">
-          <Link
-            href={`/shopping?start=${prevWeekStart}`}
-            aria-label="Previous week"
-            className="rounded-lg p-2 text-zinc-500 hover:bg-black/5 dark:hover:bg-white/5"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Link>
-          <Link
-            href="/shopping"
-            className="rounded-lg px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-black/5 dark:text-zinc-400 dark:hover:bg-white/5"
-          >
-            This week
-          </Link>
-          <Link
-            href={`/shopping?start=${nextWeekStart}`}
-            aria-label="Next week"
-            className="rounded-lg p-2 text-zinc-500 hover:bg-black/5 dark:hover:bg-white/5"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Link>
-        </div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold">Still to cook</h2>
+        {cookedCount > 0 ? (
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            {cookedCount} {cookedCount === 1 ? "recipe" : "recipes"} already
+            ticked as cooked, so left off
+          </p>
+        ) : null}
       </div>
+
+      {stale.length > 0 ? (
+        <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-amber-400/40 bg-amber-400/5 px-4 py-3 text-sm">
+          <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+          <p className="text-zinc-600 dark:text-zinc-400">
+            Still listed although every day planned for{" "}
+            {stale.length === 1 ? "it" : "them"} has passed:{" "}
+            {stale.map((b, i) => (
+              <span key={`${b.title}-${b.cookedOn}`}>
+                {i > 0 ? ", " : ""}
+                <span className="font-medium text-foreground">{b.title}</span>{" "}
+                ({shortDate(b.cookedOn)})
+              </span>
+            ))}
+            . Tick {stale.length === 1 ? "it" : "them"} off in This Week if
+            already cooked, or move {stale.length === 1 ? "it" : "them"} on the
+            calendar.
+          </p>
+        </div>
+      ) : null}
 
       <PortionChoices choices={choices} />
 
-      {mealCount === 0 ? (
-        <div className="rounded-xl border border-dashed border-black/15 bg-surface/60 p-10 text-center dark:border-white/15">
-          <p className="font-medium">Nothing planned this week</p>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            <Link
-              href={`/week?start=${weekStart}`}
-              className="text-amber-600 underline-offset-2 hover:underline dark:text-amber-400"
-            >
-              Plan some meals
-            </Link>{" "}
-            and your shopping list will build itself.
-          </p>
-        </div>
-      ) : toBuy.length === 0 ? (
+      {toBuy.length === 0 ? (
         <div className="rounded-xl border border-dashed border-black/15 bg-surface/60 p-10 text-center dark:border-white/15">
           <p className="font-medium">Nothing to buy</p>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            {carriedOverCount > 0
-              ? "Everything planned this week is already cooked or covered by your pantry staples."
-              : "Everything this week is covered by your pantry staples."}
+            {cookedCount > 0 || covered.length > 0 ? (
+              "Everything you've planned is either cooked already or covered by your pantry staples."
+            ) : (
+              <>
+                <Link
+                  href="/calendar"
+                  className="text-amber-600 underline-offset-2 hover:underline dark:text-amber-400"
+                >
+                  Plan some meals
+                </Link>{" "}
+                and your shopping list will build itself.
+              </>
+            )}
           </p>
         </div>
       ) : (
