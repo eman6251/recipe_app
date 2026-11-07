@@ -28,6 +28,7 @@ import type {
   RecipeOption,
 } from "@/lib/queries/planner";
 import type { Macros } from "@/lib/types";
+import { MacroDonut } from "@/components/macro-donut";
 
 function mealMacros(meal: PlannedMealWithRecipe): Macros | null {
   return macrosForServings(meal.recipes.macros_per_serving, meal.servings);
@@ -60,6 +61,13 @@ export function WeekView({
   dailyCalorieGoal: number | null;
 }) {
   const [dialogDate, setDialogDate] = useState<string | null>(null);
+  /**
+   * Which basis the macro panel reads on. Note the ring looks the same in
+   * both: a daily average is the week divided through, so the proportions
+   * don't move — what changes is the grams, the calories and what they're
+   * measured against.
+   */
+  const [scope, setScope] = useState<"week" | "day">("week");
   const [, startTransition] = useTransition();
 
   const start = fromISODate(weekStart);
@@ -111,9 +119,17 @@ export function WeekView({
    * drinks all come out of the same allowance, so the difference is what
    * tells you whether the plan leaves space for them.
    */
-  const weeklyGoal = dailyCalorieGoal != null ? dailyCalorieGoal * 7 : null;
-  const prepped = Math.round(weekTotal.kcal);
-  const leeway = weeklyGoal != null ? weeklyGoal - prepped : null;
+  const perWeek = scope === "week";
+  const scoped = perWeek ? weekTotal : avg;
+
+  // Each basis is compared against its own target: the week against seven
+  // days of the goal, a planned day against one. Mixing them — a daily
+  // average against a weekly budget — is the kind of number that reassures
+  // nobody correctly.
+  const goal =
+    dailyCalorieGoal != null ? (perWeek ? dailyCalorieGoal * 7 : dailyCalorieGoal) : null;
+  const prepped = Math.round(scoped.kcal);
+  const leeway = goal != null ? goal - prepped : null;
 
   // One entry per distinct recipe in the week, with its total portions.
   // A recipe counts as cooked once every planned portion is checked off.
@@ -185,15 +201,29 @@ export function WeekView({
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <div className="flex items-center gap-2">
             <Flame className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-            <h3 className="text-sm font-semibold">Week macros</h3>
+            <h3 className="text-sm font-semibold">
+              {perWeek ? "Week macros" : "Daily macros"}
+            </h3>
+            <label className="sr-only" htmlFor="macro-scope">
+              Show macros per
+            </label>
+            <select
+              id="macro-scope"
+              value={scope}
+              onChange={(e) => setScope(e.target.value as "week" | "day")}
+              className="rounded-lg border border-black/15 bg-canvas px-2 py-1 text-xs outline-none focus:border-amber-500 dark:border-white/15"
+            >
+              <option value="week">Per week</option>
+              <option value="day">Per day</option>
+            </select>
           </div>
 
-          {weeklyGoal != null && leeway != null ? (
+          {goal != null && leeway != null ? (
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
               <span className="text-lg font-semibold tabular-nums">
                 {prepped.toLocaleString()}
                 <span className="text-zinc-400 dark:text-zinc-500">
-                  /{weeklyGoal.toLocaleString()}
+                  /{goal.toLocaleString()}
                 </span>
               </span>
               <span
@@ -208,16 +238,36 @@ export function WeekView({
                   : `${Math.abs(leeway).toLocaleString()} over`}
               </span>
               <span className="w-full text-[11px] text-zinc-400 dark:text-zinc-500">
-                prepped kcal vs {dailyCalorieGoal!.toLocaleString()}/day × 7
+                {perWeek
+                  ? `prepped kcal vs ${dailyCalorieGoal!.toLocaleString()}/day × 7`
+                  : `prepped kcal per planned day vs ${dailyCalorieGoal!.toLocaleString()}/day`}
               </span>
             </div>
           ) : null}
         </div>
-        <div className="mt-3 flex flex-col gap-1.5">
-          <MacroStrip m={avg} label="Daily average:" />
-          <MacroStrip m={weekTotal} label="Week total:" />
+        <div className="mt-4 flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
+          <MacroDonut
+            macros={scoped}
+            caption={
+              perWeek
+                ? "Across the whole week"
+                : `Averaged over ${daysWithMeals} ${
+                    daysWithMeals === 1 ? "planned day" : "planned days"
+                  }`
+            }
+          />
+          <div className="flex flex-col gap-1.5">
+            <MacroStrip
+              m={scoped}
+              label={perWeek ? "Week total:" : "Daily average:"}
+            />
+            <MacroStrip
+              m={perWeek ? avg : weekTotal}
+              label={perWeek ? "Daily average:" : "Week total:"}
+            />
+          </div>
         </div>
-        {weeklyGoal == null ? (
+        {goal == null ? (
           <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
             <Link
               href="/profile"
@@ -234,7 +284,7 @@ export function WeekView({
             {missingMacros} planned {missingMacros === 1 ? "meal has" : "meals have"}{" "}
             no macro data — open the recipe and hit “Compute macros” to include{" "}
             {missingMacros === 1 ? "it" : "them"}.
-            {weeklyGoal != null
+            {goal != null
               ? " Until then the total above is low, so there's less room left than it says."
               : ""}
           </p>

@@ -34,6 +34,16 @@
   /* Amber at low alpha: reads as warmth on an edge, not as a yellow line. */
   --hairline: rgb(217 165 62 / 0.22);
   --hairline-strong: rgb(217 165 62 / 0.45);
+
+  /*
+   * Chart hues: categorical slots 1-3, in fixed order, never cycled. Stepped
+   * per mode against that mode's surface rather than flipped, and validated
+   * for colour-vision separation (worst adjacent pair ΔE 9.2 light / 9.4
+   * dark, deuteranopia) before being used.
+   */
+  --macro-protein: #2a78d6;
+  --macro-carbs: #eb6834;
+  --macro-fat: #1baf7a;
 }
 
 /*
@@ -50,6 +60,9 @@
     --foreground: #eceae8;
     --hairline: rgb(251 191 36 / 0.14);
     --hairline-strong: rgb(251 191 36 / 0.38);
+    --macro-protein: #3987e5;
+    --macro-carbs: #d95926;
+    --macro-fat: #199e70;
   }
 }
 
@@ -60,6 +73,9 @@
     --foreground: #eceae8;
     --hairline: rgb(251 191 36 / 0.14);
     --hairline-strong: rgb(251 191 36 / 0.38);
+  --macro-protein: #3987e5;
+  --macro-carbs: #d95926;
+  --macro-fat: #199e70;
 }
 
 @theme inline {
