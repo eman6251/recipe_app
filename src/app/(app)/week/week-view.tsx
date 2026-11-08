@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   Check,
@@ -28,6 +28,7 @@ import type {
   RecipeOption,
 } from "@/lib/queries/planner";
 import type { Macros } from "@/lib/types";
+import { useToast } from "@/components/toast";
 import { MacroDonut } from "@/components/macro-donut";
 
 function mealMacros(meal: PlannedMealWithRecipe): Macros | null {
@@ -69,13 +70,45 @@ export function WeekView({
    */
   const [scope, setScope] = useState<"week" | "day">("week");
   const [, startTransition] = useTransition();
+  const toast = useToast();
+
+  /*
+   * Ticking a batch off used to wait for the write *and* the page
+   * revalidation behind it before the box filled in — a second or two of a
+   * checkbox that looks broken. The tick shows at once now and the write
+   * follows; useOptimistic holds it only until the server's own answer
+   * arrives, so a failed write corrects itself rather than leaving a tick
+   * that was never saved.
+   */
+  const [optimisticMeals, markCooked] = useOptimistic(
+    meals,
+    (current, { recipeId, cooked }: { recipeId: string; cooked: boolean }) =>
+      current.map((m) => (m.recipe_id === recipeId ? { ...m, cooked } : m)),
+  );
+
+  const toggleCooked = (recipeId: string, cooked: boolean, title: string) => {
+    startTransition(async () => {
+      markCooked({ recipeId, cooked });
+      const result = await setRecipeCookedForWeek(
+        recipeId,
+        weekStart,
+        toISODate(addDays(fromISODate(weekStart), 6)),
+        cooked,
+      );
+      if (result?.error) {
+        toast(
+          `Couldn't mark ${title} as ${cooked ? "cooked" : "not cooked"}. It's been put back.`,
+        );
+      }
+    });
+  };
 
   const start = fromISODate(weekStart);
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
   const today = new Date();
 
   const byDate = new Map<string, PlannedMealWithRecipe[]>();
-  for (const meal of meals) {
+  for (const meal of optimisticMeals) {
     const list = byDate.get(meal.planned_on) ?? [];
     list.push(meal);
     byDate.set(meal.planned_on, list);
@@ -162,7 +195,7 @@ export function WeekView({
     string,
     { recipeId: string; title: string; portions: number; days: number; cooked: boolean }
   >();
-  for (const meal of meals) {
+  for (const meal of optimisticMeals) {
     const existing = prepMap.get(meal.recipe_id);
     if (existing) {
       existing.portions += meal.servings;
@@ -341,14 +374,7 @@ export function WeekView({
               <li key={entry.recipeId} className="flex items-center gap-3">
                 <button
                   onClick={() =>
-                    startTransition(() =>
-                      setRecipeCookedForWeek(
-                        entry.recipeId,
-                        weekStart,
-                        toISODate(addDays(start, 6)),
-                        !entry.cooked,
-                      ),
-                    )
+                    toggleCooked(entry.recipeId, !entry.cooked, entry.title)
                   }
                   aria-label={
                     entry.cooked

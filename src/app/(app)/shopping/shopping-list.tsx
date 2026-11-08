@@ -5,6 +5,7 @@ import Link from "next/link";
 import { RotateCcw, ShoppingCart } from "lucide-react";
 import type { PortionChoice, ShoppingLine } from "@/lib/shopping";
 import { PortionChoices } from "./portion-choices";
+import { useToast } from "@/components/toast";
 import { resetChecks, setItemChecked } from "./check-actions";
 
 /**
@@ -24,7 +25,7 @@ import { resetChecks, setItemChecked } from "./check-actions";
  * the next load rather than arriving live, which suits a list two people
  * rarely hold at the same moment.
  */
-function useCheckedItems(initial: string[]) {
+function useCheckedItems(initial: string[], onError: (message: string) => void) {
   const [checked, setChecked] = useState<Set<string>>(() => new Set(initial));
 
   const apply = (key: string, on: boolean) =>
@@ -39,7 +40,12 @@ function useCheckedItems(initial: string[]) {
     const on = !checked.has(key);
     apply(key, on);
     setItemChecked(key, on).then((result) => {
-      if (result?.error) apply(key, !on);
+      if (result?.error) {
+        apply(key, !on);
+        onError(
+          `Couldn't save "${key}" as ${on ? "checked" : "unchecked"} — it won't carry to your other devices.`,
+        );
+      }
     });
   };
 
@@ -47,7 +53,10 @@ function useCheckedItems(initial: string[]) {
     const previous = checked;
     setChecked(new Set());
     resetChecks().then((result) => {
-      if (result?.error) setChecked(previous);
+      if (result?.error) {
+        setChecked(previous);
+        onError("Couldn't clear your checked items. They're back as they were.");
+      }
     });
   };
 
@@ -70,7 +79,8 @@ export function ShoppingList({
   /** Batches planned for less than one full recipe. */
   choices: PortionChoice[];
 }) {
-  const { checked, toggle, reset } = useCheckedItems(initialChecked);
+  const toast = useToast();
+  const { checked, toggle, reset } = useCheckedItems(initialChecked, toast);
 
   const skippedParts = [
     skipped.cooked > 0 ? `${skipped.cooked} already cooked` : null,

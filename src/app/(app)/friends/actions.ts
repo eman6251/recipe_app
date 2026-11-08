@@ -169,10 +169,19 @@ export async function requestFriendship(
   }
 }
 
-export async function respondToRequest(userId: string, accept: boolean) {
+export async function respondToRequest(
+  userId: string,
+  accept: boolean,
+): Promise<{ error?: string }> {
   const supabase = await createClient();
-  await supabase.rpc("respond_to_friend_request", { other: userId, accept });
+  const { error } = await supabase.rpc("respond_to_friend_request", {
+    other: userId,
+    accept,
+  });
+
+  if (error) return { error: error.message };
   revalidatePath("/friends");
+  return {};
 }
 
 export async function removeFriend(userId: string) {

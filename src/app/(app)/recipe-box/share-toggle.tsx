@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Globe, Lock } from "lucide-react";
 import { setRecipeShared } from "@/app/(app)/recipes/[id]/social-actions";
+import { useToast } from "@/components/toast";
 
 /**
  * Share/private toggle on a recipe card, so a batch of recipes can be shared
@@ -14,13 +15,17 @@ import { setRecipeShared } from "@/app/(app)/recipes/[id]/social-actions";
  */
 export function ShareToggle({
   recipeId,
+  title,
   isPublic,
 }: {
   recipeId: string;
+  /** Only used to name the recipe if the change fails. */
+  title: string;
   isPublic: boolean;
 }) {
   const [shared, setShared] = useState(isPublic);
   const [pending, startTransition] = useTransition();
+  const toast = useToast();
 
   return (
     <button
@@ -29,7 +34,12 @@ export function ShareToggle({
         setShared(next); // optimistic: the whole point is rapid toggling
         startTransition(async () => {
           const result = await setRecipeShared(recipeId, next);
-          if (result?.error) setShared(!next);
+          if (result?.error) {
+            setShared(!next);
+            toast(
+              `Couldn't make "${title}" ${next ? "shared" : "private"}. It's still ${next ? "private" : "shared"}.`,
+            );
+          }
         });
       }}
       disabled={pending}

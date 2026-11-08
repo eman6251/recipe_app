@@ -248,6 +248,7 @@ export function RecipeBrowser({
                 {userId && recipe.user_id === userId ? (
                   <ShareToggle
                     recipeId={recipe.id}
+                    title={recipe.title}
                     isPublic={recipe.is_public}
                   />
                 ) : null}

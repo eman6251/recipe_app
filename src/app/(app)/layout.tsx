@@ -1,6 +1,7 @@
 import { Nav } from "@/components/nav";
 import { InstallPrompt } from "@/components/install-prompt";
 import { TourProvider } from "@/components/tour/tour-provider";
+import { ToastProvider } from "@/components/toast";
 import { tourInvitation } from "@/lib/tour";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/user";
@@ -29,6 +30,7 @@ export default async function AppLayout({
 
   return (
     <TourProvider invitation={invitation}>
+      <ToastProvider>
       <Nav
         avatarUrl={profile?.avatar_url ?? null}
         signedIn={!!user}
@@ -41,6 +43,7 @@ export default async function AppLayout({
           {children}
         </div>
       </main>
+      </ToastProvider>
     </TourProvider>
   );
 }

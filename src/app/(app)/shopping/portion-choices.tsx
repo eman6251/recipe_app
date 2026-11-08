@@ -1,10 +1,11 @@
 "use client";
 
-import { useTransition } from "react";
+import { useOptimistic, useTransition } from "react";
 import { Scale } from "lucide-react";
 import { formatQuantity } from "@/lib/quantity";
 import type { PortionChoice } from "@/lib/shopping";
 import { setBatchScale } from "./actions";
+import { useToast } from "@/components/toast";
 
 /**
  * The "whole recipe, or just what I planned?" prompt.
@@ -15,7 +16,30 @@ import { setBatchScale } from "./actions";
  * other and a silent default would be worse than no default.
  */
 export function PortionChoices({ choices }: { choices: PortionChoice[] }) {
-  const [pending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
+  const toast = useToast();
+
+  // The quantities above this panel are rebuilt on the server, so switching
+  // whole-recipe to half meant watching the segmented control sit on the old
+  // answer until the page came back. The control moves first now; the list
+  // behind it catches up a moment later, which is the right order — the
+  // button you pressed should never be the last thing to respond.
+  const [optimisticChoices, choose] = useOptimistic(
+    choices,
+    (
+      current,
+      { recipeId, cookedOn, scaleToPortions }: {
+        recipeId: string;
+        cookedOn: string;
+        scaleToPortions: boolean;
+      },
+    ) =>
+      current.map((c) =>
+        c.recipeId === recipeId && c.cookedOn === cookedOn
+          ? { ...c, scaleToPortions }
+          : c,
+      ),
+  );
 
   if (choices.length === 0) return null;
 
@@ -31,7 +55,7 @@ export function PortionChoices({ choices }: { choices: PortionChoice[] }) {
       </div>
 
       <ul className="flex flex-col gap-2.5">
-        {choices.map((choice) => {
+        {optimisticChoices.map((choice) => {
           const fraction = formatQuantity(
             choice.plannedPortions / choice.recipeServings,
           );
@@ -56,19 +80,28 @@ export function PortionChoices({ choices }: { choices: PortionChoice[] }) {
                 ].map((option) => (
                   <button
                     key={option.label}
-                    disabled={pending}
                     aria-pressed={choice.scaleToPortions === option.value}
                     onClick={() =>
                       startTransition(async () => {
-                        await setBatchScale(
+                        choose({
+                          recipeId: choice.recipeId,
+                          cookedOn: choice.cookedOn,
+                          scaleToPortions: option.value,
+                        });
+                        const result = await setBatchScale(
                           choice.recipeId,
                           choice.cookedOn,
                           choice.lastDay,
                           option.value,
                         );
+                        if (result?.error) {
+                          toast(
+                            `Couldn't change how much of ${choice.title} to buy. The list is unchanged.`,
+                          );
+                        }
                       })
                     }
-                    className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-60 ${
+                    className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
                       choice.scaleToPortions === option.value
                         ? "bg-amber-400 text-zinc-950"
                         : "text-zinc-600 hover:bg-black/5 dark:text-zinc-400 dark:hover:bg-white/5"

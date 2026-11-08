@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useToast } from "@/components/toast";
 import { Bookmark, Globe, Lock, Star } from "lucide-react";
 import {
   rateRecipe,
@@ -31,6 +32,7 @@ export function RecipeSocial({
   const [shared, setShared] = useState(isPublic);
   const [favorite, setFavorite] = useState(isFavorite);
   const [, startTransition] = useTransition();
+  const toast = useToast();
 
   // Log the visit once per mount so "recently viewed" reflects real opens.
   useEffect(() => {
@@ -38,9 +40,14 @@ export function RecipeSocial({
   }, [recipeId]);
 
   const submitRating = (value: number) => {
+    const previous = rating;
     setRating(value);
     startTransition(async () => {
-      await rateRecipe(recipeId, value);
+      const result = await rateRecipe(recipeId, value);
+      if (result?.error) {
+        setRating(previous);
+        toast("Couldn't save your rating. It's been put back.");
+      }
     });
   };
 
@@ -48,7 +55,13 @@ export function RecipeSocial({
     const next = !shared;
     setShared(next);
     startTransition(async () => {
-      await setRecipeShared(recipeId, next);
+      const result = await setRecipeShared(recipeId, next);
+      if (result?.error) {
+        setShared(!next);
+        toast(
+          `Couldn't make this recipe ${next ? "shared" : "private"}. It's still ${next ? "private" : "shared"}.`,
+        );
+      }
     });
   };
 
@@ -91,7 +104,13 @@ export function RecipeSocial({
             const next = !favorite;
             setFavorite(next);
             startTransition(async () => {
-              await setRecipeFavorite(recipeId, next);
+              const result = await setRecipeFavorite(recipeId, next);
+              if (result?.error) {
+                setFavorite(!next);
+                toast(
+                  `Couldn't ${next ? "add this to" : "remove this from"} your favourites.`,
+                );
+              }
             });
           }}
           className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useOptimistic, useState, useTransition } from "react";
 import {
   Check,
   ChevronLeft,
@@ -19,6 +19,7 @@ import {
   respondToRequest,
 } from "@/app/(app)/friends/actions";
 import { Avatar } from "./avatar";
+import { useToast } from "@/components/toast";
 
 /** Small enough that the list never scrolls inside the narrow panel. */
 const PAGE_SIZE = 6;
@@ -43,16 +44,48 @@ export function FriendsTab({
   const [confirming, setConfirming] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [pending, startTransition] = useTransition();
+  const toast = useToast();
 
-  const incoming = edges.filter(
+  /*
+   * Accepting or declining refetches the whole friends list, so the request
+   * card used to sit there for a beat after the tap as though nothing had
+   * happened. Both answers settle the request either way, so the row can
+   * leave immediately and the refetch can confirm it behind the scenes.
+   */
+  const [optimisticEdges, answerRequest] = useOptimistic(
+    edges,
+    (current, { userId, accept }: { userId: string; accept: boolean }) =>
+      accept
+        ? current.map((e) =>
+            e.id === userId ? { ...e, status: "accepted" as const } : e,
+          )
+        : current.filter((e) => e.id !== userId),
+  );
+
+  const respond = (userId: string, accept: boolean) => {
+    startTransition(async () => {
+      answerRequest({ userId, accept });
+      const result = await respondToRequest(userId, accept);
+      if (result?.error) {
+        const who =
+          edges.find((e) => e.id === userId)?.display_name ?? "that request";
+        toast(
+          `Couldn't ${accept ? "accept" : "decline"} ${who}. Nothing has changed.`,
+        );
+      }
+      onChanged();
+    });
+  };
+
+  const incoming = optimisticEdges.filter(
     (e) => e.status === "pending" && e.direction === "incoming",
   );
-  const outgoing = edges.filter(
+  const outgoing = optimisticEdges.filter(
     (e) => e.status === "pending" && e.direction === "outgoing",
   );
 
   const friends = useMemo(() => {
-    const accepted = edges.filter((e) => e.status === "accepted");
+    const accepted = optimisticEdges.filter((e) => e.status === "accepted");
     const q = query.trim().toLowerCase();
     if (!q) return accepted;
     return accepted.filter(
@@ -60,7 +93,7 @@ export function FriendsTab({
         e.display_name.toLowerCase().includes(q) ||
         e.username.toLowerCase().includes(q),
     );
-  }, [edges, query]);
+  }, [optimisticEdges, query]);
 
   const pageCount = Math.max(1, Math.ceil(friends.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount - 1);
@@ -174,24 +207,14 @@ export function FriendsTab({
                 </span>
                 <button
                   aria-label={`Accept ${edge.display_name}`}
-                  onClick={() =>
-                    startTransition(async () => {
-                      await respondToRequest(edge.id, true);
-                      onChanged();
-                    })
-                  }
+                  onClick={() => respond(edge.id, true)}
                   className="rounded-lg bg-amber-400 p-1.5 text-zinc-950 transition-colors hover:bg-amber-300"
                 >
                   <Check className="h-4 w-4" />
                 </button>
                 <button
                   aria-label={`Decline ${edge.display_name}`}
-                  onClick={() =>
-                    startTransition(async () => {
-                      await respondToRequest(edge.id, false);
-                      onChanged();
-                    })
-                  }
+                  onClick={() => respond(edge.id, false)}
                   className="rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-black/5 hover:text-zinc-900 dark:hover:bg-white/10 dark:hover:text-zinc-100"
                 >
                   <X className="h-4 w-4" />
@@ -212,7 +235,7 @@ export function FriendsTab({
       <section>
         <div className="mb-2 flex items-center justify-between gap-2">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-            Friends ({edges.filter((e) => e.status === "accepted").length})
+            Friends ({optimisticEdges.filter((e) => e.status === "accepted").length})
           </h3>
         </div>
 

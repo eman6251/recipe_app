@@ -18,6 +18,7 @@ import { macrosForServings, sumMacros, ZERO_MACROS } from "@/lib/macros";
 import type { Macros } from "@/lib/types";
 import { MealDialog, SLOT_ORDER, SLOT_STYLES } from "@/components/meal-dialog";
 import { deletePlannedMeal, movePlannedMeal } from "./actions";
+import { useToast } from "@/components/toast";
 import type {
   PlannedMealWithRecipe,
   RecipeOption,
@@ -129,6 +130,7 @@ export function CalendarView({
     iso: string;
     style: React.CSSProperties;
   } | null>(null);
+  const toast = useToast();
   const [dragId, setDragId] = useState<string | null>(null);
   const [dropDate, setDropDate] = useState<string | null>(null);
   /** mealId → the day it was dragged to, applied before the write lands. */
@@ -292,13 +294,18 @@ export function CalendarView({
                       setMoved((prev) => ({ ...prev, [id]: iso }));
                       startTransition(async () => {
                         const result = await movePlannedMeal(id, iso);
-                        // Put it back if the write failed.
+                        // Put it back if the write failed, and say so — a
+                        // meal that slides back on its own looks like the
+                        // drag was never picked up.
                         if (result?.error) {
                           setMoved((prev) => {
                             const next = { ...prev };
                             delete next[id];
                             return next;
                           });
+                          toast(
+                            `Couldn't move ${meal.recipes.title} to ${dayLabel(fromISODate(iso))}. It's back where it was.`,
+                          );
                         }
                       });
                     }}

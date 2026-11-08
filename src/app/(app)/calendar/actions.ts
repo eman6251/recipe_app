@@ -82,20 +82,31 @@ export async function setRecipeCookedForWeek(
   from: string,
   to: string,
   cooked: boolean,
-) {
+): Promise<{ error?: string }> {
   const supabase = await createClient();
-  await supabase
+  const { error } = await supabase
     .from("planned_meals")
     .update({ cooked })
     .eq("recipe_id", recipeId)
     .gte("planned_on", from)
     .lte("planned_on", to);
 
+  if (error) return { error: error.message };
   revalidatePlanner();
+  return {};
 }
 
-export async function setMealCooked(id: string, cooked: boolean) {
+export async function setMealCooked(
+  id: string,
+  cooked: boolean,
+): Promise<{ error?: string }> {
   const supabase = await createClient();
-  await supabase.from("planned_meals").update({ cooked }).eq("id", id);
+  const { error } = await supabase
+    .from("planned_meals")
+    .update({ cooked })
+    .eq("id", id);
+
+  if (error) return { error: error.message };
   revalidatePlanner();
+  return {};
 }
