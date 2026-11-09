@@ -496,8 +496,36 @@ export function WeekView({
                           </span>
                         ) : null}
 
-                        <span className="ml-auto hidden whitespace-nowrap text-xs text-zinc-500 sm:block dark:text-zinc-400">
-                          {m ? `${Math.round(m.kcal)} kcal` : "no macros"}
+                        {/*
+                          Per-meal macros, so a day's shape is readable
+                          without adding it up: the same 600 kcal is a very
+                          different lunch at 45g of protein than at 8g.
+
+                          Abbreviated to P/C/F rather than spelled out — the
+                          day header above already names them in full, and at
+                          five rows a day the long form is a wall. The grams
+                          drop below md and the lot below sm, where the title
+                          needs the width more than the breakdown does.
+                        */}
+                        <span className="ml-auto hidden shrink-0 items-baseline gap-2 whitespace-nowrap text-xs text-zinc-500 sm:flex dark:text-zinc-400">
+                          {m ? (
+                            <>
+                              <span className="hidden md:inline" title="Protein">
+                                P {Math.round(m.protein_g)}g
+                              </span>
+                              <span className="hidden md:inline" title="Carbs">
+                                C {Math.round(m.carbs_g)}g
+                              </span>
+                              <span className="hidden md:inline" title="Fat">
+                                F {Math.round(m.fat_g)}g
+                              </span>
+                              <span className="font-medium text-zinc-700 dark:text-zinc-200">
+                                {Math.round(m.kcal)} kcal
+                              </span>
+                            </>
+                          ) : (
+                            "no macros"
+                          )}
                         </span>
 
                         <button
