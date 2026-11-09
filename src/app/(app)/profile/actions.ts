@@ -63,7 +63,6 @@ export async function updateProfile(formData: FormData) {
       ...(username ? { username } : {}),
       ...(displayName ? { display_name: displayName } : {}),
       share_new_recipes: shareNew,
-      daily_calorie_goal: dailyCalorieGoal,
     })
     .eq("id", user.id);
 
@@ -77,9 +76,32 @@ export async function updateProfile(formData: FormData) {
     );
   }
 
+  /*
+   * The goal is written on its own, after the fields that matter.
+   *
+   * It's optional, and until its migration is run the column isn't there —
+   * folded into the update above, one missing column would reject the whole
+   * statement and lose a username change along with it. Separate, the worst
+   * case is that the goal doesn't stick and says so.
+   */
+  const { error: goalError } = await supabase
+    .from("profiles")
+    .update({ daily_calorie_goal: dailyCalorieGoal })
+    .eq("id", user.id);
+
   revalidatePath("/profile");
   revalidatePath("/");
   revalidatePath("/week");
+
+  if (goalError) {
+    redirect(
+      "/profile?error=" +
+        encodeURIComponent(
+          `Everything else saved, but not the calorie goal: ${goalError.message}`,
+        ),
+    );
+  }
+
   redirect("/profile?message=" + encodeURIComponent("Profile saved."));
 }
 

@@ -25,18 +25,40 @@ export default async function ProfilePage({
   const stored = (await cookies()).get(THEME_COOKIE)?.value;
   const themeChoice = isThemeChoice(stored) ? stored : "system";
 
-  // Thrown rather than swallowed. Discarding this renders every field empty,
-  // which looks exactly like an account with nothing filled in — and saving
-  // from that form would then write the blanks back over the real values.
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("username, display_name, avatar_url, share_new_recipes, daily_calorie_goal")
-    .eq("id", user?.id ?? "")
-    .maybeSingle();
+  /*
+   * Two reads, not one, and the split is the point.
+   *
+   * The identity fields are thrown on if they fail: discarding that error
+   * renders every box empty, which looks exactly like an account nobody has
+   * filled in, and saving from there would write the blanks back over a real
+   * username.
+   *
+   * The calorie goal is fetched apart from them because it's optional and,
+   * until its migration is run, absent — and PostgREST fails a whole select
+   * over one unknown column. Asking for it separately means a column that
+   * isn't there yet costs you that one field instead of the entire page.
+   */
+  const [
+    { data: profile, error: profileError },
+    { data: goalRow, error: goalError },
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("username, display_name, avatar_url, share_new_recipes")
+      .eq("id", user?.id ?? "")
+      .maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("daily_calorie_goal")
+      .eq("id", user?.id ?? "")
+      .maybeSingle(),
+  ]);
 
   if (profileError) {
     throw new Error(`Couldn't load your profile: ${profileError.message}`);
   }
+
+  const goalAvailable = !goalError;
 
   return (
     <>
@@ -108,13 +130,23 @@ export default async function ProfilePage({
               max={10000}
               step={50}
               placeholder="e.g. 2200"
-              defaultValue={profile?.daily_calorie_goal ?? ""}
-              className={`${inputClass} w-40`}
+              defaultValue={goalRow?.daily_calorie_goal ?? ""}
+              disabled={!goalAvailable}
+              className={`${inputClass} w-40 disabled:opacity-50`}
             />
             <span className="text-xs text-zinc-500 dark:text-zinc-400">
-              This Week compares your prepped meals against it, multiplied out
-              across the seven days. Leave it empty if you&apos;d rather not
-              see one.
+              {goalAvailable ? (
+                <>
+                  This Week compares your prepped meals against it, multiplied
+                  out across the seven days. Leave it empty if you&apos;d
+                  rather not see one.
+                </>
+              ) : (
+                <>
+                  Unavailable — the database hasn&apos;t got this column yet.
+                  Run the calorie-goal migration and it&apos;ll turn on.
+                </>
+              )}
             </span>
           </label>
 
