@@ -12,7 +12,6 @@ import {
   LogOut,
   LayoutGrid,
   UserRound,
-  UsersRound,
   type LucideIcon,
 } from "lucide-react";
 import { signout } from "@/app/login/actions";
@@ -23,10 +22,11 @@ import { INGREDIENT_GROUPS } from "@/lib/ingredients";
 /**
  * The mobile tab bar. Desktop renders DESKTOP_ITEMS instead.
  *
- * Five tabs, because seven across a phone left each one about fifty pixels
- * wide with the labels nearly touching. Calendar, This Week, Shopping and
- * Pantry sit behind one Organization tab that opens their landing page — the
- * same grouping the desktop bar uses in its mega-menu.
+ * Four tabs. Seven across a phone left each about fifty pixels wide with the
+ * labels nearly touching; Calendar, This Week, Shopping and Pantry sit behind
+ * one Organize tab that opens their landing page — the same grouping the
+ * desktop bar uses in its mega-menu — and the profile, with Friends inside
+ * it, is reached from the home page rather than costing a tab.
  */
 type MobileItem = {
   href: string;
@@ -46,8 +46,9 @@ const MOBILE_ITEMS: MobileItem[] = [
     icon: LayoutGrid,
     matches: ["/calendar", "/week", "/shopping", "/pantry"],
   },
-  // Desktop opens this as a slide-over from the top bar instead.
-  { href: "/friends", label: "Friends", icon: UsersRound },
+  // Friends isn't here: it's somewhere you visit, not somewhere you work,
+  // and a tab each for four things beats a tab each for five. On a phone
+  // it's reached from the profile page, on a desktop from the top bar.
 ];
 
 function isActive(pathname: string, href: string) {

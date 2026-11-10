@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/user";
+import { ProfileLink } from "./profile-link";
 import { PageHeader } from "@/components/page-header";
 import { getHomeData } from "@/lib/queries/discover";
 import { RecipeRow } from "./recipe-row";
@@ -10,7 +13,21 @@ export default async function Home({
   searchParams: Promise<{ author?: string }>;
 }) {
   const { author } = await searchParams;
-  const data = await getHomeData(author);
+  const supabase = await createClient();
+  const user = await getCurrentUser();
+
+  const [data, profile] = await Promise.all([
+    getHomeData(author),
+    // Tolerant: a missing avatar costs the picture, not the way in.
+    user
+      ? supabase
+          .from("profiles")
+          .select("avatar_url, display_name")
+          .eq("id", user.id)
+          .maybeSingle()
+          .then((r) => r.data)
+      : Promise.resolve(null),
+  ]);
 
   const hasAnything =
     data.recentlyViewed.length > 0 ||
@@ -22,6 +39,14 @@ export default async function Home({
     <>
       <PageHeader
         title={data.signedIn ? "Welcome back" : "Skillet"}
+        action={
+          data.signedIn ? (
+            <ProfileLink
+              avatarUrl={profile?.avatar_url ?? null}
+              name={profile?.display_name ?? null}
+            />
+          ) : null
+        }
         description={
           data.signedIn
             ? "Your kitchen command center."

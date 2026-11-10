@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SubmitButton } from "@/components/submit-button";
 import { cookies } from "next/headers";
+import { UsersRound } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/user";
@@ -178,6 +179,26 @@ export default async function ProfilePage({
             </SubmitButton>
           </div>
         </form>
+
+        {/*
+          Phones only. The desktop top bar already opens friends as a
+          slide-over right beside the avatar, so a second way in from here
+          would just be clutter — but on a phone the tab bar has no room for
+          it and this is where you'd look.
+        */}
+        <div className="border-t border-black/10 pt-4 md:hidden dark:border-white/10">
+          <h3 className="text-sm font-medium">Friends</h3>
+          <p className="mb-2 mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+            Your friend code, requests, and your chats.
+          </p>
+          <Link
+            href="/friends"
+            className="inline-flex items-center gap-2 rounded-lg border border-amber-400/40 px-3 py-2 text-sm font-medium transition-colors hover:border-amber-400/80 hover:bg-amber-400/10"
+          >
+            <UsersRound className="h-4 w-4" />
+            Friends and chat
+          </Link>
+        </div>
 
         <div className="border-t border-black/10 pt-4 dark:border-white/10">
           <h3 className="text-sm font-medium">Nutrition across your recipe box</h3>
