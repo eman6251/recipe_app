@@ -189,8 +189,8 @@ export function RecipeBrowser({
                       alt=""
                       width={600}
                       height={320}
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                       className="aspect-[3/2] w-full object-cover"
-                      unoptimized
                     />
                   ) : null}
                   <div className="flex flex-1 flex-col p-5">

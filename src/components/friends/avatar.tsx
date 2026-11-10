@@ -20,8 +20,8 @@ export function Avatar({
         width={size}
         height={size}
         style={{ width: size, height: size }}
+        sizes={`${size}px`}
         className={className}
-        unoptimized
       />
     );
   }

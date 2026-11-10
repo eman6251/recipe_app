@@ -266,8 +266,8 @@ export function Nav({
                   alt=""
                   width={32}
                   height={32}
+                  sizes="32px"
                   className="h-8 w-8 object-cover"
-                  unoptimized
                 />
               ) : (
                 <span className="flex h-8 w-8 items-center justify-center bg-black/5 text-zinc-500 dark:bg-white/10 dark:text-zinc-400">

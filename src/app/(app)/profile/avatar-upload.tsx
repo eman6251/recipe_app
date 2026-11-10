@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import { UserRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { downscaleImage } from "@/lib/downscale";
 import { setAvatar } from "./actions";
 
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -60,11 +61,15 @@ export function AvatarUpload({ avatarUrl }: { avatarUrl: string | null }) {
         return;
       }
 
-      const ext = file.type.split("/")[1].replace("jpeg", "jpg");
+      // Shrunk first, so the extension matches what actually goes up —
+      // downscaling re-encodes to WebP, and a .jpg holding WebP bytes is a
+      // trap for anything that trusts the name.
+      const upload = await downscaleImage(file);
+      const ext = upload.type.split("/")[1].replace("jpeg", "jpg");
       const path = `${user.id}/avatar.${ext}`;
       const { error: uploadError } = await supabase.storage
         .from("avatars")
-        .upload(path, file, { upsert: true, contentType: file.type });
+        .upload(path, upload, { upsert: true, contentType: upload.type });
       if (uploadError) {
         setError(uploadError.message);
         return;
@@ -86,7 +91,7 @@ export function AvatarUpload({ avatarUrl }: { avatarUrl: string | null }) {
         } bg-canvas`}
       >
         {avatarUrl ? (
-          <Image src={avatarUrl} alt="" fill className="object-cover" unoptimized />
+          <Image src={avatarUrl} alt="" fill sizes="80px" className="object-cover" />
         ) : (
           <span className="flex h-full items-center justify-center text-zinc-300 dark:text-zinc-600">
             <UserRound className="h-8 w-8" />

@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import { ImagePlus, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { downscaleImage } from "@/lib/downscale";
 import { removeRecipeImage, setRecipeImage } from "../actions";
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
@@ -69,13 +70,17 @@ export function RecipeImage({
         return;
       }
 
-      const ext = file.type.split("/")[1].replace("jpeg", "jpg");
+      // Shrunk first, so the extension matches what actually goes up —
+      // downscaling re-encodes to WebP, and a .jpg holding WebP bytes is a
+      // trap for anything that trusts the name.
+      const upload = await downscaleImage(file);
+      const ext = upload.type.split("/")[1].replace("jpeg", "jpg");
       // Keyed by user id so storage policies verify ownership from the path.
       const path = `${user.id}/${recipeId}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from("recipe-images")
-        .upload(path, file, { upsert: true, contentType: file.type });
+        .upload(path, upload, { upsert: true, contentType: upload.type });
       if (uploadError) {
         setError(uploadError.message);
         return;
@@ -136,20 +141,24 @@ export function RecipeImage({
             the photo you see.
           */}
           <div className="relative h-56 w-full bg-black/5 sm:h-72 md:h-80 dark:bg-black/30">
+            {/* The backdrop is blurred to nothing, so it only ever needs a
+                thumbnail — asking for a full-width copy of a photo about to
+                have a 2xl blur put over it is pure waste. */}
             <Image
               src={imageUrl}
               alt=""
               aria-hidden
               fill
+              sizes="64px"
               className="scale-110 object-cover opacity-40 blur-2xl"
-              unoptimized
             />
             <Image
               src={imageUrl}
               alt={title}
               fill
+              priority
+              sizes="(max-width: 768px) 100vw, 768px"
               className="object-contain"
-              unoptimized
             />
           </div>
           <div className="absolute right-2 top-2 flex gap-1.5 opacity-0 transition-opacity group-hover/img:opacity-100">

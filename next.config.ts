@@ -29,6 +29,29 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  /*
+   * Recipe photos come off phones at two megabytes each and were being served
+   * whole to fill a card thumbnail a hundred and fifty pixels wide. A grid of
+   * twelve was twenty-four megabytes of mobile data to draw a page that needs
+   * well under one.
+   *
+   * Pointing the optimiser at the storage buckets lets it resize and re-encode
+   * on the way through, so each <Image> gets something scaled to the box it
+   * renders in. The sizes attributes at each call site are what make that
+   * work — without them every image is treated as full-viewport-width.
+   */
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "*.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+      },
+    ],
+    // Modern formats first; the optimiser falls back for browsers that
+    // can't take them.
+    formats: ["image/avif", "image/webp"],
+  },
   experimental: {
     // Server Actions reject requests whose Origin doesn't match the server's
     // Host (CSRF protection). VS Code dev tunnels forward a *.devtunnels.ms

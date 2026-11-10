@@ -17,8 +17,8 @@ function Card({ recipe }: { recipe: RecipeCard }) {
               src={recipe.image_url}
               alt=""
               fill
+              sizes="(max-width: 768px) 45vw, 260px"
               className="object-cover"
-              unoptimized
             />
           ) : (
             <span className="flex h-full items-center justify-center text-zinc-300 dark:text-zinc-700">

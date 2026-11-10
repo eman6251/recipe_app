@@ -37,8 +37,8 @@ export function RecipeCardTile({ recipe }: { recipe: BrowseRecipe }) {
             src={recipe.image_url}
             alt=""
             fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             className="object-cover"
-            unoptimized
           />
         ) : (
           <span className="flex h-full items-center justify-center text-zinc-300 dark:text-zinc-700">
