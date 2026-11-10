@@ -44,7 +44,13 @@ export async function updateSession(request: NextRequest) {
   const isPublic =
     pathname === "/" ||
     pathname.startsWith("/login") ||
-    pathname.startsWith("/auth");
+    pathname.startsWith("/auth") ||
+    // The keepalive runs from Vercel's scheduler, which has no session. It
+    // was being redirected to /login like any other signed-out request, so
+    // the job that exists to keep the database awake never reached it — it
+    // woke the login page every morning instead. It guards itself with
+    // CRON_SECRET; this only gets it past the session check.
+    pathname === "/api/keepalive";
 
   // Redirects must carry any auth cookies getUser() just refreshed, or the
   // session refresh is silently lost.
