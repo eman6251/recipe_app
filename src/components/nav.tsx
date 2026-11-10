@@ -11,6 +11,7 @@ import {
   History,
   LogOut,
   LayoutGrid,
+  Search,
   UserRound,
   type LucideIcon,
 } from "lucide-react";
@@ -323,10 +324,11 @@ export function Nav({
         needs the content behind it to be moving past, which is why the page
         keeps its generous bottom padding.
       */}
-      <nav
+      <div
         style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 0.75rem)" }}
-        className="md:hidden fixed inset-x-4 z-30 flex overflow-hidden rounded-2xl border border-black/10 bg-surface/70 dark:border-white/10 shadow-lg shadow-black/20 backdrop-blur-xl"
+        className="md:hidden fixed inset-x-4 z-30 flex items-stretch gap-2"
       >
+      <nav className="flex flex-1 overflow-hidden rounded-full border border-black/10 bg-surface/70 shadow-lg shadow-black/20 backdrop-blur-xl dark:border-white/10">
         {MOBILE_ITEMS.map(
           ({ href, label, icon: Icon, matches }) => {
             const active =
@@ -351,6 +353,24 @@ export function Nav({
           },
         )}
       </nav>
+
+      {/*
+        Search sits apart from the destinations rather than among them: it's
+        a verb, not a place, and giving it its own target means the four tabs
+        keep their width.
+      */}
+      <Link
+        href="/search"
+        aria-label="Search"
+        className={`flex aspect-square shrink-0 items-center justify-center rounded-full border border-black/10 bg-surface/70 shadow-lg shadow-black/20 backdrop-blur-xl transition-colors active:bg-black/10 dark:border-white/10 dark:active:bg-white/10 ${
+          isActive(pathname, "/search")
+            ? "text-amber-600 dark:text-amber-400"
+            : "text-zinc-500 dark:text-zinc-400"
+        }`}
+      >
+        <Search className="h-5 w-5" />
+      </Link>
+      </div>
     </>
   );
 }

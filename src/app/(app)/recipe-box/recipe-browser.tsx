@@ -193,15 +193,17 @@ export function RecipeBrowser({
                       className="aspect-[3/2] w-full object-cover"
                     />
                   ) : null}
-                  <div className="flex flex-1 flex-col p-5">
-                  <h2 className="font-medium leading-snug">{recipe.title}</h2>
+                  <div className="flex flex-1 flex-col p-3 sm:p-5">
+                  <h2 className="line-clamp-2 text-sm font-medium leading-snug sm:text-base">
+                    {recipe.title}
+                  </h2>
                   {recipe.description ? (
-                    <p className="mt-1 line-clamp-2 text-sm text-zinc-500 dark:text-zinc-400">
+                    <p className="mt-1 hidden line-clamp-2 text-sm text-zinc-500 sm:block dark:text-zinc-400">
                       {recipe.description}
                     </p>
                   ) : null}
 
-                  <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 pt-3 pr-20 text-xs text-zinc-500 dark:text-zinc-400">
+                  <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 whitespace-nowrap pt-2 pr-20 text-xs text-zinc-500 sm:gap-x-4 sm:pt-3 dark:text-zinc-400">
                     {totalMinutes > 0 ? (
                       <span className="inline-flex items-center gap-1">
                         <Clock className="h-3.5 w-3.5" />
@@ -211,9 +213,12 @@ export function RecipeBrowser({
                     {recipe.macros_per_serving ? (
                       <span className="inline-flex items-center gap-1">
                         <Flame className="h-3.5 w-3.5" />
-                        {Math.round(recipe.macros_per_serving.kcal)} kcal ·{" "}
-                        {Math.round(recipe.macros_per_serving.protein_g)}g
-                        protein
+                        {Math.round(recipe.macros_per_serving.kcal)} kcal
+                        <span className="hidden sm:inline">
+                          {" "}
+                          · {Math.round(recipe.macros_per_serving.protein_g)}g
+                          protein
+                        </span>
                       </span>
                     ) : null}
                   </div>
@@ -224,7 +229,7 @@ export function RecipeBrowser({
                       padding on this row and the one above keeps them from
                       running under the share pill in the corner. */}
                   {recipe.tags.length > 0 ? (
-                    <div className="mt-2 flex flex-wrap items-center gap-1.5 pr-20">
+                    <div className="mt-2 hidden flex-wrap items-center gap-1.5 pr-20 sm:flex">
                       {recipe.tags.slice(0, 3).map((tag) => (
                         <span
                           key={tag}
