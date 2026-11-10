@@ -7,8 +7,8 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   ChefHat,
-  BookOpen,
   BookMarked,
+  History,
   LogOut,
   LayoutGrid,
   UserRound,
@@ -38,7 +38,8 @@ type MobileItem = {
 
 const MOBILE_ITEMS: MobileItem[] = [
   { href: "/", label: "Home", icon: ChefHat },
-  { href: "/recipes", label: "Recipes", icon: BookOpen },
+  // Named for what the page leads with on a phone, which is recents.
+  { href: "/recipes", label: "Recent", icon: History },
   { href: "/recipe-box", label: "Recipe Box", icon: BookMarked },
   {
     href: "/organization",
@@ -310,18 +311,21 @@ export function Nav({
 
       {/* Mobile: bottom tab bar — a top bar can't hold eight destinations. */}
       {/*
-        Taller than it was by about half, with a divider between each cell.
-        The old bar gave each tab roughly a fingertip of height and nothing to
-        say where one ended and the next began, which is a good way to open
-        Recipes when you meant Recipe Box.
+        A floating bar rather than one welded to the bottom edge: inset from
+        the sides, lifted clear of the home indicator, and translucent so the
+        page reads as continuing underneath it instead of stopping at a line.
 
-        The bottom padding clears the iPhone home indicator. Without it the
-        bottom few millimetres of the bar sit under the system gesture area,
-        so the lowest part of every tab was swallowed rather than tapped.
+        Floating is also what finally solves the gesture area — the bar sits
+        above it entirely now, rather than padding itself out of the way, so
+        no part of a tab is ever under the system swipe.
+
+        The blur does the legibility work the old opaque background did. It
+        needs the content behind it to be moving past, which is why the page
+        keeps its generous bottom padding.
       */}
       <nav
-        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
-        className="md:hidden fixed inset-x-0 bottom-0 z-30 flex divide-x divide-black/5 border-t border-black/10 bg-surface/95 backdrop-blur dark:divide-white/5 dark:border-white/10"
+        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 0.75rem)" }}
+        className="md:hidden fixed inset-x-4 z-30 flex overflow-hidden rounded-2xl border border-black/10 bg-surface/70 dark:border-white/10 shadow-lg shadow-black/20 backdrop-blur-xl"
       >
         {MOBILE_ITEMS.map(
           ({ href, label, icon: Icon, matches }) => {
@@ -334,7 +338,7 @@ export function Nav({
                 href={href}
                 // active:bg gives the tap somewhere to land visibly — on a
                 // phone there's no hover to tell you the cell registered.
-                className={`flex flex-1 flex-col items-center justify-center gap-1.5 py-4 text-[11px] font-medium transition-colors active:bg-black/5 dark:active:bg-white/5 ${
+                className={`flex flex-1 flex-col items-center justify-center gap-1 py-3 text-[11px] font-medium transition-colors active:bg-black/10 dark:active:bg-white/10 ${
                   active
                     ? "text-amber-600 dark:text-amber-400"
                     : "text-zinc-500 dark:text-zinc-400"

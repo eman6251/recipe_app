@@ -80,3 +80,41 @@ export async function listBrowseRecipes(): Promise<BrowseRecipe[]> {
     };
   });
 }
+
+/**
+ * Recipes you've opened lately, newest first.
+ *
+ * Drawn from the same browse list rather than queried fresh, so a recipe that
+ * has since been unshared drops out of the history too — the view log keeps
+ * the id whether or not you can still read the recipe.
+ */
+export async function listRecentlyViewed(
+  recipes: BrowseRecipe[],
+  limit = 24,
+): Promise<BrowseRecipe[]> {
+  const supabase = await createClient();
+  const user = await getCurrentUser();
+  if (!user) return [];
+
+  const { data } = await supabase
+    .from("recipe_views")
+    .select("recipe_id, viewed_at")
+    .eq("user_id", user.id)
+    .order("viewed_at", { ascending: false })
+    .limit(limit * 2);
+
+  const byId = new Map(recipes.map((r) => [r.id, r]));
+  const seen = new Set<string>();
+  const out: BrowseRecipe[] = [];
+
+  for (const row of data ?? []) {
+    if (seen.has(row.recipe_id)) continue;
+    const recipe = byId.get(row.recipe_id);
+    if (!recipe) continue;
+    seen.add(row.recipe_id);
+    out.push(recipe);
+    if (out.length >= limit) break;
+  }
+
+  return out;
+}

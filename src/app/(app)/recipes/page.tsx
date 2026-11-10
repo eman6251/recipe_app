@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
-import { listBrowseRecipes } from "@/lib/queries/browse";
+import { listBrowseRecipes, listRecentlyViewed } from "@/lib/queries/browse";
+import { RecentGrid } from "./recent-grid";
 import { Browse } from "./browse";
 
 export default async function RecipesPage({
@@ -13,6 +14,10 @@ export default async function RecipesPage({
     searchParams,
     listBrowseRecipes(),
   ]);
+
+  // Needs the browse list to resolve ids, so it follows rather than joins the
+  // batch above. One small indexed read.
+  const recent = await listRecentlyViewed(recipes);
 
   return (
     <>
@@ -29,6 +34,11 @@ export default async function RecipesPage({
           </Link>
         }
       />
+      {/* Only when nothing is filtered: a filter is a deliberate search, and
+          burying its results under a history of unrelated recipes answers a
+          question nobody asked. */}
+      {f ? null : <RecentGrid recipes={recent} />}
+
       {/* Remount when the nav picks a different filter so it takes effect. */}
       <Browse key={f ?? "all"} recipes={recipes} initialFilter={f} />
     </>
