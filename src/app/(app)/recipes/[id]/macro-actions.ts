@@ -193,6 +193,18 @@ async function chooseMatches(
 export async function computeMacros(
   recipeId: string,
   force = false,
+  /**
+   * Re-ask for every line's gram weight, not just the blank ones.
+   *
+   * Normally a stored weight is left alone: it came from the importer when
+   * the recipe was read, and re-guessing it on every recompute would make the
+   * numbers wander. But that also means a bad weight is permanent, and a bad
+   * weight is the single biggest source of error — one over-estimated line
+   * can carry most of a recipe's calories. This re-estimates them against
+   * the current prompt, which knows about package sizes and raw-versus-cooked
+   * in a way the early one didn't.
+   */
+  reweigh = false,
 ): Promise<MacroComputeResult> {
   const apiKey = process.env.USDA_API_KEY;
   if (!apiKey) {
@@ -218,7 +230,7 @@ export async function computeMacros(
   // 1. Fill missing gram estimates via Claude (manual entries lack them).
   const gramless = recipe.recipe_ingredients
     .map((ing, index) => ({ ing, index }))
-    .filter(({ ing }) => ing.grams == null || ing.grams <= 0);
+    .filter(({ ing }) => reweigh || ing.grams == null || ing.grams <= 0);
   const lineText = (ing: RecipeIngredient) =>
     [ing.quantity, ing.unit, ing.item, ing.note && `(${ing.note})`]
       .filter(Boolean)
@@ -233,8 +245,13 @@ export async function computeMacros(
     },
   );
 
+  // When reweighing, the fresh estimate wins; otherwise it only fills a gap.
+  // A changed weight invalidates the cached line macros on its own, since
+  // the reuse check below compares the stored grams against this.
   const gramsFor = (ing: RecipeIngredient, index: number) =>
-    ing.grams ?? estimates.get(index) ?? null;
+    (reweigh
+      ? (estimates.get(index) ?? ing.grams)
+      : (ing.grams ?? estimates.get(index))) ?? null;
 
   // 2. Search USDA for every line that needs a (re)match, then let Claude
   //    choose among candidates in one batched call.

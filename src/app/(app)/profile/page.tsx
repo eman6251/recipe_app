@@ -8,6 +8,7 @@ import { updateProfile } from "./actions";
 import { AvatarUpload } from "./avatar-upload";
 import { ThemePicker } from "@/components/theme-picker";
 import { TourButton } from "@/components/tour/tour-button";
+import { MacroBackfill } from "./macro-backfill";
 import { THEME_COOKIE, isThemeChoice } from "@/lib/theme";
 
 const inputClass =
@@ -177,6 +178,17 @@ export default async function ProfilePage({
             </SubmitButton>
           </div>
         </form>
+
+        <div className="border-t border-black/10 pt-4 dark:border-white/10">
+          <h3 className="text-sm font-medium">Nutrition across your recipe box</h3>
+          <p className="mb-3 mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+            Works through your recipes one at a time, computing macros from
+            ingredient weights and the USDA database. It&apos;s here rather
+            than on a recipe page because it makes a lot of billable calls and
+            shouldn&apos;t be a mis-tap away.
+          </p>
+          <MacroBackfill />
+        </div>
 
         <div className="border-t border-black/10 pt-4 dark:border-white/10">
           <h3 className="text-sm font-medium">Getting around</h3>
