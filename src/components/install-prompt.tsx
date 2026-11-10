@@ -73,8 +73,8 @@ export function InstallPrompt() {
 
   return (
     // Above the mobile tab bar, out of the way of the thumb on the way past.
-    <div style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 6.5rem)" }}
-        className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom,0px)+6.5rem)] z-40 md:inset-x-auto md:bottom-6 md:right-6 md:w-96">
+    <div
+      className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom,0px)+6.5rem)] z-40 md:inset-x-auto md:bottom-6 md:right-6 md:w-96">
       <div className="rounded-2xl border border-amber-400/40 bg-surface p-4 shadow-2xl">
         <button
           onClick={close}
