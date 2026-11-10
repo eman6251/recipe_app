@@ -54,7 +54,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         // Bottom centre, above the phone tab bar, and never in the way: the
         // wrapper ignores pointer events so only the toasts themselves catch
         // a tap.
-        className="pointer-events-none fixed inset-x-0 bottom-24 z-[80] flex flex-col items-center gap-2 px-4 md:bottom-8"
+        className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+6.5rem)] z-[80] flex flex-col items-center gap-2 px-4 md:bottom-8"
         role="status"
         aria-live="polite"
       >

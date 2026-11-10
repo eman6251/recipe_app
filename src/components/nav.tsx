@@ -308,7 +308,20 @@ export function Nav({
       </header>
 
       {/* Mobile: bottom tab bar — a top bar can't hold eight destinations. */}
-      <nav className="md:hidden fixed inset-x-0 bottom-0 z-30 flex border-t border-black/10 bg-surface/95 backdrop-blur dark:border-white/10">
+      {/*
+        Taller than it was by about half, with a divider between each cell.
+        The old bar gave each tab roughly a fingertip of height and nothing to
+        say where one ended and the next began, which is a good way to open
+        Recipes when you meant Recipe Box.
+
+        The bottom padding clears the iPhone home indicator. Without it the
+        bottom few millimetres of the bar sit under the system gesture area,
+        so the lowest part of every tab was swallowed rather than tapped.
+      */}
+      <nav
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+        className="md:hidden fixed inset-x-0 bottom-0 z-30 flex divide-x divide-black/5 border-t border-black/10 bg-surface/95 backdrop-blur dark:divide-white/5 dark:border-white/10"
+      >
         {MOBILE_ITEMS.map(
           ({ href, label, icon: Icon, matches }) => {
             const active =
@@ -318,13 +331,15 @@ export function Nav({
               <Link
                 key={href}
                 href={href}
-                className={`flex flex-1 flex-col items-center gap-1 py-2 text-[10px] font-medium ${
+                // active:bg gives the tap somewhere to land visibly — on a
+                // phone there's no hover to tell you the cell registered.
+                className={`flex flex-1 flex-col items-center justify-center gap-1.5 py-4 text-[11px] font-medium transition-colors active:bg-black/5 dark:active:bg-white/5 ${
                   active
                     ? "text-amber-600 dark:text-amber-400"
                     : "text-zinc-500 dark:text-zinc-400"
                 }`}
               >
-                <Icon className="h-5 w-5" />
+                <Icon className="h-6 w-6" />
                 {label}
               </Link>
             );

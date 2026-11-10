@@ -15,7 +15,8 @@ export function TourInvitation({
   onDismiss: () => void;
 }) {
   return (
-    <div className="fixed inset-x-4 bottom-24 z-[90] md:inset-x-auto md:bottom-6 md:right-6 md:w-80">
+    <div style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 6.5rem)" }}
+        className="fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom,0px)+6.5rem)] z-[90] md:inset-x-auto md:bottom-6 md:right-6 md:w-80">
       <div className="rounded-2xl border border-amber-400/40 bg-surface p-4 shadow-2xl">
         <button
           onClick={onDismiss}
