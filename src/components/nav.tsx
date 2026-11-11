@@ -350,15 +350,20 @@ export function Nav({
         above it entirely now, rather than padding itself out of the way, so
         no part of a tab is ever under the system swipe.
 
+        Both bubbles are sized explicitly to the same height. aspect-square
+        looked like it ought to make the round one round, but a flex item
+        whose basis is its own content won't take a width derived from a
+        stretched height, so it came out a narrow pill around the icon.
+
         The blur does the legibility work the old opaque background did. It
         needs the content behind it to be moving past, which is why the page
         keeps its generous bottom padding.
       */}
       <div
         style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 0.75rem)" }}
-        className="md:hidden fixed inset-x-4 z-30 flex items-stretch gap-2"
+        className="md:hidden fixed inset-x-4 z-30 flex items-center gap-2.5"
       >
-      <nav className="flex flex-1 overflow-hidden rounded-full border border-black/10 bg-surface/70 shadow-lg shadow-black/20 backdrop-blur-xl dark:border-white/10">
+      <nav className="flex h-14 flex-1 overflow-hidden rounded-full border border-black/10 bg-surface/70 shadow-lg shadow-black/20 backdrop-blur-xl dark:border-white/10">
         {MOBILE_ITEMS.map(
           ({ href, label, icon: Icon, matches }) => {
             const active =
@@ -370,13 +375,13 @@ export function Nav({
                 href={href}
                 // active:bg gives the tap somewhere to land visibly — on a
                 // phone there's no hover to tell you the cell registered.
-                className={`flex flex-1 flex-col items-center justify-center gap-1 py-3 text-[11px] font-medium transition-colors active:bg-black/10 dark:active:bg-white/10 ${
+                className={`flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors active:bg-black/10 dark:active:bg-white/10 ${
                   active
                     ? "text-amber-600 dark:text-amber-400"
                     : "text-zinc-500 dark:text-zinc-400"
                 }`}
               >
-                <Icon className="h-6 w-6" />
+                <Icon className="h-[22px] w-[22px]" />
                 {label}
               </Link>
             );
@@ -392,7 +397,7 @@ export function Nav({
       <Link
         href="/search"
         aria-label="Search"
-        className={`flex aspect-square shrink-0 items-center justify-center rounded-full border border-black/10 bg-surface/70 shadow-lg shadow-black/20 backdrop-blur-xl transition-colors active:bg-black/10 dark:border-white/10 dark:active:bg-white/10 ${
+        className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-black/10 bg-surface/70 shadow-lg shadow-black/20 backdrop-blur-xl transition-colors active:bg-black/10 dark:border-white/10 dark:active:bg-white/10 ${
           isActive(pathname, "/search")
             ? "text-amber-600 dark:text-amber-400"
             : "text-zinc-500 dark:text-zinc-400"
