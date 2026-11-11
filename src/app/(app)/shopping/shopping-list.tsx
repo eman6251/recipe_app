@@ -186,8 +186,21 @@ export function ShoppingList({
               const startsAisle =
                 !sunk &&
                 (i === 0 || aisleFor(previous.item).id !== aisle.id);
+              // The sunk items follow the last aisle with nothing between
+              // them, which made a basket full of shopping look like more of
+              // whatever that aisle happened to be — usually Other.
+              const startsSunk =
+                sunk && (i === 0 || !settled.has(previous.key));
               return (
                 <Fragment key={line.key}>
+                {startsSunk ? (
+                  <li
+                    aria-hidden
+                    className="mt-4 border-t border-black/10 px-2 pt-3 text-[11px] font-semibold uppercase tracking-wide text-zinc-400 dark:border-white/10 dark:text-zinc-500"
+                  >
+                    In the basket
+                  </li>
+                ) : null}
                 {startsAisle ? (
                   <li
                     aria-hidden
