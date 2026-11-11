@@ -136,14 +136,24 @@ export function MealDialog({
               </label>
               <label className="flex flex-col gap-1.5">
                 <span className="text-sm font-medium">Portions</span>
-                <input
+                {/*
+                  A list rather than a number field. The spinner arrows on a
+                  number input are a few pixels tall and stacked on each other
+                  — fine with a mouse, unhittable with a thumb — and the only
+                  alternative was summoning a numeric keyboard over the dialog
+                  to type a single digit. Seven covers a portion a day.
+                */}
+                <select
                   value={portions}
                   onChange={(e) => setPortions(e.target.value)}
-                  type="number"
-                  min="0.5"
-                  step="0.5"
                   className={inputClass}
-                />
+                >
+                  {PORTION_OPTIONS.map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
               </label>
             </div>
 
@@ -193,6 +203,9 @@ export const SLOT_STYLES: Record<MealSlot, string> = {
   snack:
     "bg-violet-50 text-violet-800 dark:bg-violet-950/60 dark:text-violet-300",
 };
+
+/** One portion a day for a week; a longer list is a scroll, not a choice. */
+const PORTION_OPTIONS = [1, 2, 3, 4, 5, 6, 7];
 
 export const SLOT_ORDER: Record<MealSlot, number> = {
   breakfast: 0,

@@ -132,3 +132,37 @@ textarea:focus,
 select:focus {
   border-color: var(--hairline-strong);
 }
+
+/*
+ * Stop the page zooming itself on a phone.
+ *
+ * iOS zooms in whenever you focus a field whose text is under 16px, and it
+ * doesn't zoom back out afterwards — which is the "distorted page" you end up
+ * stuck in after tapping Portions. The fix is the font size, not a viewport
+ * flag: Safari has ignored user-scalable=no since iOS 10, deliberately,
+ * because pinch-zoom is how a lot of people read anything at all. Blocking it
+ * wouldn't have worked here and would have been worth not doing even if it
+ * had.
+ *
+ * 16px only below the tablet breakpoint; a mouse doesn't need it and the
+ * denser text reads better on a laptop.
+ */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/*
+ * Kills the double-tap-to-zoom gesture on things meant to be tapped once,
+ * which is the other way a page ends up zoomed by accident — an impatient
+ * second tap on a button that hasn't responded yet. Pinch-zoom is untouched.
+ */
+button,
+a,
+select,
+[role="button"] {
+  touch-action: manipulation;
+}
