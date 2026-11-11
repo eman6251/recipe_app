@@ -198,23 +198,29 @@ export function ShoppingList({
                     {aisle.label}
                   </li>
                 ) : null}
-                <li className="flex items-start gap-2 px-2 py-1">
+                <li className="flex items-start gap-2.5 px-2 py-1">
                   {/*
                     Only the box toggles. The whole row used to, which meant a
                     thumb resting on an item name while the list scrolled read
                     as a tap and crossed off something you hadn't bought. The
                     box keeps a generous pad around it so it's still an easy
                     target — just one you have to mean.
+
+                    The button is one line tall (h-6 against the title's
+                    leading-6) with the box centred inside it, so the two line
+                    up from the same origin whatever the text size. Nudging it
+                    with a margin worked until mobile bumped the fields to
+                    16px and moved the baseline out from under it.
                   */}
                   <button
                     onClick={() => toggle(line.key)}
                     role="checkbox"
                     aria-checked={isChecked}
                     aria-label={line.item}
-                    className="-m-1 shrink-0 rounded-lg p-1 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+                    className="-mx-1 flex h-6 shrink-0 items-center rounded-lg px-1 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
                   >
                     <span
-                      className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded border transition-colors ${
+                      className={`flex h-5 w-5 items-center justify-center rounded border transition-colors ${
                         isChecked
                           ? "border-amber-400 bg-amber-400"
                           : "border-black/20 dark:border-white/20"
@@ -232,9 +238,9 @@ export function ShoppingList({
                     </span>
                   </button>
 
-                  <span className="min-w-0 flex-1 py-1">
+                  <span className="min-w-0 flex-1">
                       <span
-                        className={`flex flex-wrap items-baseline gap-x-2 capitalize ${
+                        className={`flex flex-wrap items-baseline gap-x-2 leading-6 capitalize ${
                           isChecked
                             ? "text-zinc-400 line-through dark:text-zinc-600"
                             : ""

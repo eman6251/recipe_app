@@ -144,17 +144,42 @@ const LOOKUP: { words: string[]; aisle: Aisle }[] = AISLES.flatMap((aisle) =>
     b.words.join("").length - a.words.join("").length,
 );
 
+const byId = (id: string) => AISLES.find((a) => a.id === id)!;
+
+/**
+ * Words that move a fresh ingredient somewhere else in the shop.
+ *
+ * The thing itself doesn't decide the aisle — its state does. Ginger is
+ * produce; ginger powder is a jar on the spice rack, and nobody looks for it
+ * by the vegetables. Same for dried oregano against the growing kind, or
+ * tinned tomatoes against the loose ones.
+ *
+ * Only applied to a produce match: "ground" shouldn't move ground beef, and
+ * it doesn't, because beef never matched produce in the first place.
+ */
+const DRIED_FORMS = ["powder", "powdered", "dried", "ground", "granulated", "granule", "flake"];
+const PRESERVED_FORMS = ["canned", "tinned", "jarred", "pickled"];
+
 export function aisleFor(item: string): Aisle {
   const words = new Set(canonicalKey(item).split(" ").map(singular));
   if (words.size === 0) return OTHER_AISLE;
 
   // "Frozen peas" is a trip to the freezer whatever the pea says otherwise.
-  if (words.has("frozen")) return AISLES.find((a) => a.id === "frozen")!;
+  if (words.has("frozen")) return byId("frozen");
+  if (PRESERVED_FORMS.some((w) => words.has(w))) return byId("dry");
 
+  let base = OTHER_AISLE;
   for (const { words: keyword, aisle } of LOOKUP) {
-    if (keyword.every((w) => words.has(w))) return aisle;
+    if (keyword.every((w) => words.has(w))) {
+      base = aisle;
+      break;
+    }
   }
-  return OTHER_AISLE;
+
+  if (base.id === "produce" && DRIED_FORMS.some((w) => words.has(w))) {
+    return byId("spices");
+  }
+  return base;
 }
 
 /** Sort position; Other sits last by construction. */
