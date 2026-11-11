@@ -84,6 +84,8 @@ export type RecipeOption = {
   title: string;
   /** Drives the meal-type and tag filters in the recipe picker. */
   tags: string[];
+  /** What one batch makes — sets how far the portions list needs to run. */
+  servings: number;
 };
 
 export async function listRecipeOptions(): Promise<RecipeOption[]> {
@@ -95,7 +97,7 @@ export async function listRecipeOptions(): Promise<RecipeOption[]> {
   // don't belong in the meal-planner picker.
   const { data, error } = await supabase
     .from("recipes")
-    .select("id, title, tags")
+    .select("id, title, tags, servings")
     .eq("user_id", user.id)
     .order("title");
 

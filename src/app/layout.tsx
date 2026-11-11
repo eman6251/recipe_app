@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import { THEME_COOKIE, isThemeChoice, themeAttribute } from "@/lib/theme";
+import { NoPinchZoom } from "@/components/no-pinch-zoom";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,6 +28,10 @@ export const viewport: Viewport = {
   ],
   width: "device-width",
   initialScale: 1,
+  // Honoured on Android and by an installed iOS app. Safari on the open web
+  // ignores it, which is what NoPinchZoom is for.
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default async function RootLayout({
@@ -46,6 +51,7 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-canvas text-foreground">
+        <NoPinchZoom />
         {children}
       </body>
     </html>

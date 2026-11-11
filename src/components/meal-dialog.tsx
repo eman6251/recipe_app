@@ -49,6 +49,19 @@ export function MealDialog({
   };
 
   const portionCount = Number(portions) || 1;
+
+  /*
+   * How far the portions list runs, from the recipe rather than a constant.
+   *
+   * Two batches is the sensible ceiling — past that you're cooking twice and
+   * should plan it twice — so a recipe that makes fourteen offers up to
+   * twenty-eight. The floor of fourteen is for small recipes: a four-serving
+   * dinner still wants a fortnight of daily portions, and capping it at eight
+   * would be the recipe's limit standing in for yours.
+   */
+  const servings = recipes.find((r) => r.id === recipeId)?.servings || 1;
+  const maxPortions = Math.max(14, Math.round(servings * 2));
+  const portionOptions = Array.from({ length: maxPortions }, (_, i) => i + 1);
   const days = Math.max(1, Math.round(portionCount));
   const willSpread = spread && days > 1;
 
@@ -141,14 +154,14 @@ export function MealDialog({
                   number input are a few pixels tall and stacked on each other
                   — fine with a mouse, unhittable with a thumb — and the only
                   alternative was summoning a numeric keyboard over the dialog
-                  to type a single digit. Seven covers a portion a day.
+                  to type a single digit.
                 */}
                 <select
                   value={portions}
                   onChange={(e) => setPortions(e.target.value)}
                   className={inputClass}
                 >
-                  {PORTION_OPTIONS.map((n) => (
+                  {portionOptions.map((n) => (
                     <option key={n} value={n}>
                       {n}
                     </option>
@@ -203,9 +216,6 @@ export const SLOT_STYLES: Record<MealSlot, string> = {
   snack:
     "bg-violet-50 text-violet-800 dark:bg-violet-950/60 dark:text-violet-300",
 };
-
-/** One portion a day for a week; a longer list is a scroll, not a choice. */
-const PORTION_OPTIONS = [1, 2, 3, 4, 5, 6, 7];
 
 export const SLOT_ORDER: Record<MealSlot, number> = {
   breakfast: 0,
