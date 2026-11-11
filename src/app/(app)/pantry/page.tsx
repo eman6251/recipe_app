@@ -67,6 +67,7 @@ export default async function PantryPage() {
               <input
                 name="on_hand_g"
                 type="number"
+                inputMode="numeric"
                 min="0"
                 step="any"
                 placeholder="120"

@@ -231,6 +231,7 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: Props) {
             value={servings}
             onChange={(e) => setServings(e.target.value)}
             type="number"
+            inputMode="numeric"
             min="0.5"
             step="0.5"
             required
@@ -243,6 +244,7 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: Props) {
             value={prepMinutes}
             onChange={(e) => setPrepMinutes(e.target.value)}
             type="number"
+            inputMode="numeric"
             min="0"
             className={inputClass}
           />
@@ -253,6 +255,7 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: Props) {
             value={cookMinutes}
             onChange={(e) => setCookMinutes(e.target.value)}
             type="number"
+            inputMode="numeric"
             min="0"
             className={inputClass}
           />
