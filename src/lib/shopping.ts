@@ -4,6 +4,7 @@
  * would run a staple down past its restock point.
  */
 
+import { aisleRank } from "@/lib/aisles";
 import { daysBetween } from "@/lib/dates";
 import { canonicalKey, covers } from "@/lib/fridge";
 import { packagingTare } from "@/lib/pantry";
@@ -373,8 +374,17 @@ export function buildShoppingList(
     }
   }
 
-  toBuy.sort((a, b) => a.item.localeCompare(b.item));
-  covered.sort((a, b) => a.item.localeCompare(b.item));
+  /*
+   * Shop order, not dictionary order. Alphabetical sends you from apples to
+   * bacon to carrots to cheddar and back again; grouping by aisle walks the
+   * store once. Alphabetical inside each aisle, so a long one is still
+   * scannable.
+   */
+  const byAisle = (a: ShoppingLine, b: ShoppingLine) =>
+    aisleRank(a.item) - aisleRank(b.item) || a.item.localeCompare(b.item);
+
+  toBuy.sort(byAisle);
+  covered.sort(byAisle);
 
   return { toBuy, covered };
 }

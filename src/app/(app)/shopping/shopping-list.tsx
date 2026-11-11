@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { RotateCcw, ShoppingCart } from "lucide-react";
 import type { PortionChoice, ShoppingLine } from "@/lib/shopping";
+import { aisleFor } from "@/lib/aisles";
 import { PortionChoices } from "./portion-choices";
 import { useToast } from "@/components/toast";
 import { resetChecks, setItemChecked } from "./check-actions";
@@ -63,6 +64,9 @@ function useCheckedItems(initial: string[], onError: (message: string) => void) 
   return { checked, toggle, reset };
 }
 
+/** Long enough to see the tick land, short enough not to feel stuck. */
+const SINK_DELAY_MS = 700;
+
 export function ShoppingList({
   initialChecked,
   toBuy,
@@ -82,6 +86,23 @@ export function ShoppingList({
   const toast = useToast();
   const { checked, toggle, reset } = useCheckedItems(initialChecked, toast);
 
+  /*
+   * Where things sit, which lags what's ticked.
+   *
+   * Checking an item used to drop it to the bottom of the list the same
+   * frame, so the thing you just tapped was gone before you'd seen it fill
+   * in — which reads as "did that work?" rather than "done". The tick is
+   * immediate and the move waits, long enough to watch it happen.
+   */
+  const [settled, setSettled] = useState<Set<string>>(
+    () => new Set(initialChecked),
+  );
+
+  useEffect(() => {
+    const timer = setTimeout(() => setSettled(new Set(checked)), SINK_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [checked]);
+
   const skippedParts = [
     skipped.cooked > 0 ? `${skipped.cooked} already cooked` : null,
     skipped.past > 0 ? `${skipped.past} past their cook day` : null,
@@ -92,12 +113,12 @@ export function ShoppingList({
 
   // Ticked items sink to the bottom, so what's left to find is always at the
   // top of the list instead of scattered through it. Stable within each half,
-  // which keeps the alphabetical order the server sent.
+  // which keeps the aisle order the server sent.
   const ordered = useMemo(() => {
-    const todo = toBuy.filter((l) => !checked.has(l.key));
-    const done = toBuy.filter((l) => checked.has(l.key));
+    const todo = toBuy.filter((l) => !settled.has(l.key));
+    const done = toBuy.filter((l) => settled.has(l.key));
     return [...todo, ...done];
-  }, [toBuy, checked]);
+  }, [toBuy, settled]);
 
   return (
     <>
@@ -154,10 +175,30 @@ export function ShoppingList({
           </div>
 
           <ul className="flex flex-col gap-1">
-            {ordered.map((line) => {
+            {ordered.map((line, i) => {
               const isChecked = checked.has(line.key);
+              // An aisle heading above the first item from each part of the
+              // shop — only among what's still to get, since the sunk items
+              // below are in no particular aisle any more.
+              const sunk = settled.has(line.key);
+              const aisle = aisleFor(line.item);
+              const previous = ordered[i - 1];
+              const startsAisle =
+                !sunk &&
+                (i === 0 || aisleFor(previous.item).id !== aisle.id);
               return (
-                <li key={line.key} className="flex items-start gap-2 px-2 py-1">
+                <Fragment key={line.key}>
+                {startsAisle ? (
+                  <li
+                    aria-hidden
+                    className={`px-2 text-[11px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500 ${
+                      i === 0 ? "" : "mt-3"
+                    }`}
+                  >
+                    {aisle.label}
+                  </li>
+                ) : null}
+                <li className="flex items-start gap-2 px-2 py-1">
                   {/*
                     Only the box toggles. The whole row used to, which meant a
                     thumb resting on an item name while the list scrolled read
@@ -227,6 +268,7 @@ export function ShoppingList({
                       ) : null}
                   </span>
                 </li>
+                </Fragment>
               );
             })}
           </ul>
