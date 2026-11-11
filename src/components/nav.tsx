@@ -252,6 +252,25 @@ export function Nav({
               Recipe Box
             </Link>
 
+            {/*
+              Same page the phone reaches from its own round button. Search
+              isn't a destination among the mega-menus — it's a thing you do
+              to what's already there — so it sits in the right-hand cluster
+              with the other tools rather than in the nav proper.
+            */}
+            <Link
+              href="/search"
+              aria-label="Search"
+              title="Search recipes"
+              className={`rounded-lg p-2 transition-colors ${
+                isActive(pathname, "/search")
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              }`}
+            >
+              <Search className="h-5 w-5" />
+            </Link>
+
             {userId ? <FriendsButton meId={userId} /> : null}
 
             <Link
