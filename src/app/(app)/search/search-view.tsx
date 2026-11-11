@@ -29,8 +29,15 @@ function haystack(recipe: BrowseRecipe): string {
     .toLowerCase();
 }
 
-export function SearchView({ recipes }: { recipes: BrowseRecipe[] }) {
-  const [query, setQuery] = useState("");
+export function SearchView({
+  recipes,
+  initialQuery = "",
+}: {
+  recipes: BrowseRecipe[];
+  /** Carried in from the top bar's field, so the page opens on its results. */
+  initialQuery?: string;
+}) {
+  const [query, setQuery] = useState(initialQuery);
   // Keeps typing smooth when the list is long: the field updates now, the
   // results catch up a frame later.
   const deferred = useDeferredValue(query);

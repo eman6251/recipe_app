@@ -4,14 +4,14 @@ import { useState } from "react";
 import { SubmitButton } from "@/components/submit-button";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   ChefHat,
   BookMarked,
   History,
   LogOut,
   LayoutGrid,
-  Search,
+  Search as SearchIcon,
   UserRound,
   type LucideIcon,
 } from "lucide-react";
@@ -182,7 +182,9 @@ export function Nav({
   userId?: string | null;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   const itemActive = (item: DesktopItem) =>
     (item.href ? isActive(pathname, item.href) : false) ||
@@ -195,49 +197,39 @@ export function Nav({
         className="sticky top-0 z-30 hidden border-b border-black/10 bg-surface md:block dark:border-white/10"
         onMouseLeave={() => setOpenMenu(null)}
       >
-        <div className="mx-auto flex w-full max-w-6xl items-center gap-6 px-6 py-3">
+        <div className="mx-auto flex w-full max-w-6xl items-center gap-5 px-6 pb-2 pt-3">
           <Link href="/" className="flex shrink-0 items-center gap-2">
             <ChefHat className="h-6 w-6 text-amber-500" />
             <span className="text-lg font-semibold tracking-tight">Skillet</span>
           </Link>
 
-          <nav className="flex items-center gap-1">
-            {DESKTOP_ITEMS.map((item) => {
-              const active = itemActive(item);
-              const className = `block whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                active
-                  ? "text-amber-600 dark:text-amber-400"
-                  : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-              }`;
-              return (
-                <div
-                  key={item.label}
-                  className="relative"
-                  onMouseEnter={() => setOpenMenu(item.menu ? item.label : null)}
-                >
-                  {item.href ? (
-                    <Link href={item.href} className={className}>
-                      {item.label}
-                    </Link>
-                  ) : (
-                    <button
-                      onClick={() =>
-                        setOpenMenu(openMenu === item.label ? null : item.label)
-                      }
-                      className={className}
-                    >
-                      {item.label}
-                    </button>
-                  )}
-                  {active ? (
-                    <span className="absolute inset-x-3 -bottom-3 h-0.5 rounded bg-amber-500" />
-                  ) : null}
-                </div>
-              );
-            })}
-          </nav>
+          {/*
+            A field rather than a magnifying glass. Search was the one thing
+            in here you had to already know existed; NYT Cooking gives it the
+            width of the page for a reason.
+          */}
+          <form
+            action="/search"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const q = search.trim();
+              router.push(q ? `/search?q=${encodeURIComponent(q)}` : "/search");
+            }}
+            className="relative min-w-0 flex-1"
+          >
+            <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+            <input
+              name="q"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              type="search"
+              placeholder="What would you like to cook?"
+              aria-label="Search recipes"
+              className="w-full rounded-lg border border-black/15 bg-canvas py-2 pl-9 pr-3 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-white/15"
+            />
+          </form>
 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             {signedIn ? (
               <>
             <Link
@@ -250,25 +242,6 @@ export function Nav({
             >
               <BookMarked className="h-4 w-4" />
               Recipe Box
-            </Link>
-
-            {/*
-              Same page the phone reaches from its own round button. Search
-              isn't a destination among the mega-menus — it's a thing you do
-              to what's already there — so it sits in the right-hand cluster
-              with the other tools rather than in the nav proper.
-            */}
-            <Link
-              href="/search"
-              aria-label="Search"
-              title="Search recipes"
-              className={`rounded-lg p-2 transition-colors ${
-                isActive(pathname, "/search")
-                  ? "text-amber-600 dark:text-amber-400"
-                  : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-              }`}
-            >
-              <Search className="h-5 w-5" />
             </Link>
 
             {userId ? <FriendsButton meId={userId} /> : null}
@@ -316,7 +289,45 @@ export function Nav({
           </div>
         </div>
 
-        {/* The panel sits outside the row so it spans the full width. */}
+        <div className="mx-auto flex w-full max-w-6xl items-center px-6 pb-2">
+          <nav className="flex items-center gap-1">
+            {DESKTOP_ITEMS.map((item) => {
+              const active = itemActive(item);
+              const className = `block whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                active
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              }`;
+              return (
+                <div
+                  key={item.label}
+                  className="relative"
+                  onMouseEnter={() => setOpenMenu(item.menu ? item.label : null)}
+                >
+                  {item.href ? (
+                    <Link href={item.href} className={className}>
+                      {item.label}
+                    </Link>
+                  ) : (
+                    <button
+                      onClick={() =>
+                        setOpenMenu(openMenu === item.label ? null : item.label)
+                      }
+                      className={className}
+                    >
+                      {item.label}
+                    </button>
+                  )}
+                  {active ? (
+                    <span className="absolute inset-x-3 -bottom-2 h-0.5 rounded bg-amber-500" />
+                  ) : null}
+                </div>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* The panel sits outside both rows so it spans the full width. */}
         <div className="relative mx-auto w-full max-w-6xl px-6">
           {openMenu ? (
             <MegaMenu
@@ -387,7 +398,7 @@ export function Nav({
             : "text-zinc-500 dark:text-zinc-400"
         }`}
       >
-        <Search className="h-5 w-5" />
+        <SearchIcon className="h-5 w-5" />
       </Link>
       </div>
     </>
