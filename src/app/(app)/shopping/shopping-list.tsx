@@ -157,13 +157,23 @@ export function ShoppingList({
             {ordered.map((line) => {
               const isChecked = checked.has(line.key);
               return (
-                <li key={line.key}>
+                <li key={line.key} className="flex items-start gap-2 px-2 py-1">
+                  {/*
+                    Only the box toggles. The whole row used to, which meant a
+                    thumb resting on an item name while the list scrolled read
+                    as a tap and crossed off something you hadn't bought. The
+                    box keeps a generous pad around it so it's still an easy
+                    target — just one you have to mean.
+                  */}
                   <button
                     onClick={() => toggle(line.key)}
-                    className="flex w-full items-start gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+                    role="checkbox"
+                    aria-checked={isChecked}
+                    aria-label={line.item}
+                    className="-m-1 shrink-0 rounded-lg p-1 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
                   >
                     <span
-                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
+                      className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded border transition-colors ${
                         isChecked
                           ? "border-amber-400 bg-amber-400"
                           : "border-black/20 dark:border-white/20"
@@ -179,7 +189,9 @@ export function ShoppingList({
                         </svg>
                       ) : null}
                     </span>
-                    <span className="flex-1 min-w-0">
+                  </button>
+
+                  <span className="min-w-0 flex-1 py-1">
                       <span
                         className={`flex flex-wrap items-baseline gap-x-2 capitalize ${
                           isChecked
@@ -213,8 +225,7 @@ export function ShoppingList({
                           {line.restockNote}
                         </span>
                       ) : null}
-                    </span>
-                  </button>
+                  </span>
                 </li>
               );
             })}
