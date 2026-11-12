@@ -144,9 +144,16 @@ export function CalendarView({
     ? recipes.find((r) => r.id === addRecipeId)
     : undefined;
 
-  // Days worth offering: today onwards. Yesterday can't be cooked.
+  /*
+   * Days worth marking: today onwards, since yesterday can't be cooked.
+   *
+   * "Today" is a rendering hazard here. This component is server-rendered
+   * first, and the server's clock is UTC — so for anyone west of Greenwich
+   * in the evening, the server's today is the user's tomorrow, and today's
+   * own cell comes back unmarked.
+   */
   const todayIso = toISODate(new Date());
-  const canPlanOn = (iso: string) => !!planningRecipe && iso >= todayIso;
+  const isFutureDay = (iso: string) => iso >= todayIso;
   const [hover, setHover] = useState<{
     iso: string;
     style: React.CSSProperties;
@@ -288,7 +295,9 @@ export function CalendarView({
         mealsByDate={byDate}
         planningFrom={planningRecipe ? todayIso : undefined}
         onPickDay={(iso) => {
-          if (canPlanOn(iso)) setDialogDate(iso);
+          // In planning mode every day goes straight to the dialog, marked
+          // or not: you came here to place a recipe.
+          if (planningRecipe) setDialogDate(iso);
           else setSheetDate(iso);
         }}
       />
@@ -368,7 +377,9 @@ export function CalendarView({
                     className={`group relative min-h-24 border-r border-black/5 p-1.5 transition-colors last:border-r-0 dark:border-white/5 ${
                       inMonth ? "" : "opacity-40"
                     } ${dropDate === iso ? "bg-amber-400/15" : ""} ${
-                      canPlanOn(iso) ? "ring-1 ring-inset ring-amber-400/30" : ""
+                      planningRecipe && isFutureDay(iso)
+                        ? "ring-1 ring-inset ring-amber-400/30"
+                        : ""
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -385,7 +396,7 @@ export function CalendarView({
                         onClick={() => setDialogDate(iso)}
                         aria-label={`Add meal on ${iso}`}
                         className={`rounded p-1 transition-opacity hover:bg-black/5 dark:hover:bg-white/10 ${
-                          canPlanOn(iso)
+                          planningRecipe
                             ? "bg-amber-400/20 text-amber-600 opacity-100 dark:text-amber-400"
                             : "text-zinc-400 opacity-0 group-hover:opacity-100"
                         }`}
@@ -475,7 +486,7 @@ export function CalendarView({
 
       {dialogDate ? (
         <MealDialog
-          initialRecipeId={canPlanOn(dialogDate) ? addRecipeId : undefined}
+          initialRecipeId={planningRecipe?.id}
           date={dialogDate}
           recipes={recipes}
           onClose={() => {
