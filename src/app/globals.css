@@ -166,3 +166,61 @@ select,
 [role="button"] {
   touch-action: manipulation;
 }
+
+/*
+ * Press feedback on touch screens.
+ *
+ * Tailwind's reset turns off -webkit-tap-highlight-color, which is the grey
+ * flash iOS puts behind a tapped link. Nothing replaced it, so a tap on an
+ * Organize card did nothing at all until the next page arrived — and a
+ * second or two of no response is indistinguishable from a tap that missed,
+ * which is how you end up pressing twice.
+ *
+ * Dim and a hair smaller rather than a background tint: a tint has to know
+ * what colour it's sitting on, and these range from an amber button to a
+ * photo. Opacity works on all of them.
+ *
+ * hover: none scopes it to touch. A mouse already says so by hovering, and
+ * on a desktop the dim would fight the hover styles on the way down.
+ *
+ * Transform doesn't apply to inline elements, so a link inside a sentence
+ * dims without the surrounding text shifting — only blocks and cards shrink.
+ */
+@media (hover: none) {
+  a:active,
+  button:active:not(:disabled),
+  summary:active,
+  label:active,
+  [role="button"]:active,
+  [role="checkbox"]:active {
+    opacity: 0.55;
+    transform: scale(0.985);
+    /* Instant on the way in; the release is what wants easing. */
+    transition: none;
+  }
+
+  a,
+  button,
+  summary,
+  label,
+  [role="button"],
+  [role="checkbox"] {
+    transition:
+      opacity 140ms ease-out,
+      transform 140ms ease-out;
+  }
+}
+
+/*
+ * Respect a request for less motion: keep the dim, drop the movement.
+ */
+@media (hover: none) and (prefers-reduced-motion: reduce) {
+  a:active,
+  button:active:not(:disabled),
+  summary:active,
+  label:active,
+  [role="button"]:active,
+  [role="checkbox"]:active {
+    transform: none;
+  }
+}
