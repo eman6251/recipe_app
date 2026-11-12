@@ -35,11 +35,18 @@ export function MonthCompact({
   year,
   monthIdx,
   mealsByDate,
+  planningFrom,
   onPickDay,
 }: {
   year: number;
   monthIdx: number;
   mealsByDate: Map<string, PlannedMealWithRecipe[]>;
+  /**
+   * When planning a recipe onto a day: the earliest day worth offering.
+   * Those days get marked, since there's no hovering a phone to find out
+   * which ones will take it.
+   */
+  planningFrom?: string;
   onPickDay: (iso: string) => void;
 }) {
   const weeks = calendarGrid(year, monthIdx);
@@ -68,6 +75,7 @@ export function MonthCompact({
             const dayMeals = mealsByDate.get(iso) ?? [];
             const inMonth = day.getMonth() === monthIdx;
             const isToday = isSameDay(day, today);
+            const plannable = planningFrom != null && iso >= planningFrom;
 
             return (
               <button
@@ -78,7 +86,7 @@ export function MonthCompact({
                 }`}
                 className={`flex min-h-16 flex-col items-center gap-1 border-r border-black/5 py-2 last:border-r-0 dark:border-white/5 ${
                   inMonth ? "" : "opacity-35"
-                }`}
+                } ${plannable ? "bg-amber-400/10" : ""}`}
               >
                 <span
                   className={`flex h-7 w-7 items-center justify-center rounded-full text-sm ${

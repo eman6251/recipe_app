@@ -22,14 +22,24 @@ const inputClass =
 export function MealDialog({
   date,
   recipes,
+  initialRecipeId,
   onClose,
 }: {
   date: string; // YYYY-MM-DD
   recipes: RecipeOption[];
+  /** Arrived from a recipe's "Add to meal prep", so start on that recipe. */
+  initialRecipeId?: string;
   onClose: () => void;
 }) {
-  const [recipeId, setRecipeId] = useState("");
-  const [slot, setSlot] = useState<MealSlot>("dinner");
+  const [recipeId, setRecipeId] = useState(initialRecipeId ?? "");
+  const [slot, setSlot] = useState<MealSlot>(() => {
+    // Same inference the picker does, applied to the recipe we arrived with:
+    // a dessert should land on the dessert slot without being re-picked.
+    const tags = (
+      recipes.find((r) => r.id === initialRecipeId)?.tags ?? []
+    ).map((t) => t.trim().toLowerCase());
+    return SLOTS.find((s) => tags.includes(s)) ?? "dinner";
+  });
   const [slotTouched, setSlotTouched] = useState(false);
   const [portions, setPortions] = useState("1");
   const [spread, setSpread] = useState(true);

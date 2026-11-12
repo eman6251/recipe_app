@@ -6,9 +6,9 @@ import { CalendarView } from "./calendar-view";
 export default async function CalendarPage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string }>;
+  searchParams: Promise<{ month?: string; add?: string }>;
 }) {
-  const { month } = await searchParams;
+  const { month, add } = await searchParams;
 
   const now = new Date();
   let year = now.getFullYear();
@@ -42,7 +42,10 @@ export default async function CalendarPage({
             day, the way a batch actually gets eaten. Uncheck &ldquo;spread
             across days&rdquo; to stack them all on one date instead. Hover any
             day with meals to see the full names, that day&apos;s macros, and links
-            to each recipe.
+            to each recipe. Opening the calendar from a recipe&apos;s{" "}
+            <strong>Add to meal prep</strong> button marks every day from today
+            to the end of the month, and picking one starts with that recipe
+            already chosen.
           </>
         }
       />
@@ -51,6 +54,7 @@ export default async function CalendarPage({
         monthIdx={monthIdx}
         meals={meals}
         recipes={recipes}
+        addRecipeId={add}
       />
     </>
   );

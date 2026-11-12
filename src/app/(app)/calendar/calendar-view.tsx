@@ -121,15 +121,32 @@ export function CalendarView({
   monthIdx,
   meals,
   recipes,
+  addRecipeId,
 }: {
   year: number;
   monthIdx: number;
   meals: PlannedMealWithRecipe[];
   recipes: RecipeOption[];
+  /** Set when you arrived from a recipe, to be planned onto a day. */
+  addRecipeId?: string;
 }) {
   const [dialogDate, setDialogDate] = useState<string | null>(null);
   /** Which day the phone's sheet is showing, if any. */
   const [sheetDate, setSheetDate] = useState<string | null>(null);
+
+  /*
+   * "Planning mode": arrived from a recipe and looking for a day to put it
+   * on. Dismissible, because the banner that explains it would otherwise sit
+   * there for the rest of the session once you'd finished.
+   */
+  const [planning, setPlanning] = useState(!!addRecipeId);
+  const planningRecipe = planning
+    ? recipes.find((r) => r.id === addRecipeId)
+    : undefined;
+
+  // Days worth offering: today onwards. Yesterday can't be cooked.
+  const todayIso = toISODate(new Date());
+  const canPlanOn = (iso: string) => !!planningRecipe && iso >= todayIso;
   const [hover, setHover] = useState<{
     iso: string;
     style: React.CSSProperties;
@@ -246,11 +263,34 @@ export function CalendarView({
         </div>
       </div>
 
+      {planningRecipe ? (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-400/50 bg-amber-400/10 px-4 py-3">
+          <p className="text-sm">
+            Pick a day for{" "}
+            <strong className="font-semibold">{planningRecipe.title}</strong>
+            <span className="block text-xs text-zinc-500 dark:text-zinc-400">
+              Marked days are today onwards — earlier ones can&apos;t be
+              cooked.
+            </span>
+          </p>
+          <button
+            onClick={() => setPlanning(false)}
+            className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-black/5 dark:text-zinc-400 dark:hover:bg-white/10"
+          >
+            Cancel
+          </button>
+        </div>
+      ) : null}
+
       <MonthCompact
         year={year}
         monthIdx={monthIdx}
         mealsByDate={byDate}
-        onPickDay={setSheetDate}
+        planningFrom={planningRecipe ? todayIso : undefined}
+        onPickDay={(iso) => {
+          if (canPlanOn(iso)) setDialogDate(iso);
+          else setSheetDate(iso);
+        }}
       />
 
       {/*
@@ -327,7 +367,9 @@ export function CalendarView({
                     }}
                     className={`group relative min-h-24 border-r border-black/5 p-1.5 transition-colors last:border-r-0 dark:border-white/5 ${
                       inMonth ? "" : "opacity-40"
-                    } ${dropDate === iso ? "bg-amber-400/15" : ""}`}
+                    } ${dropDate === iso ? "bg-amber-400/15" : ""} ${
+                      canPlanOn(iso) ? "ring-1 ring-inset ring-amber-400/30" : ""
+                    }`}
                   >
                     <div className="flex items-center justify-between">
                       <span
@@ -342,7 +384,11 @@ export function CalendarView({
                       <button
                         onClick={() => setDialogDate(iso)}
                         aria-label={`Add meal on ${iso}`}
-                        className="rounded p-1 text-zinc-400 opacity-0 transition-opacity hover:bg-black/5 group-hover:opacity-100 dark:hover:bg-white/10"
+                        className={`rounded p-1 transition-opacity hover:bg-black/5 dark:hover:bg-white/10 ${
+                          canPlanOn(iso)
+                            ? "bg-amber-400/20 text-amber-600 opacity-100 dark:text-amber-400"
+                            : "text-zinc-400 opacity-0 group-hover:opacity-100"
+                        }`}
                       >
                         <Plus className="h-3.5 w-3.5" />
                       </button>
@@ -429,9 +475,13 @@ export function CalendarView({
 
       {dialogDate ? (
         <MealDialog
+          initialRecipeId={canPlanOn(dialogDate) ? addRecipeId : undefined}
           date={dialogDate}
           recipes={recipes}
-          onClose={() => setDialogDate(null)}
+          onClose={() => {
+            setDialogDate(null);
+            setPlanning(false);
+          }}
         />
       ) : null}
     </>

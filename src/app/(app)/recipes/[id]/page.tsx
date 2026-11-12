@@ -7,6 +7,7 @@ import { InfoTip } from "@/components/info-tip";
 import { RecipeSocial } from "./recipe-social";
 import { RecipeView } from "./recipe-view";
 import { DeleteRecipeButton } from "./delete-button";
+import { CalendarPlus } from "lucide-react";
 import { MacroButton } from "./macro-button";
 import { RecipeImage } from "./recipe-image";
 
@@ -137,6 +138,21 @@ export default async function RecipeDetailPage({
           ratingCount={ratingCount}
           isFavorite={!!favorite}
         />
+
+        {/*
+          Only your own recipes: the planner picker lists what you've written
+          or saved, so sending someone here from a recipe they can read but
+          haven't kept would open the calendar on a recipe it can't offer.
+        */}
+        {isOwner ? (
+          <Link
+            href={`/calendar?add=${recipe.id}`}
+            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-amber-400 px-4 py-2 text-sm font-medium text-zinc-950 transition-colors hover:bg-amber-300"
+          >
+            <CalendarPlus className="h-4 w-4" />
+            Add to meal prep
+          </Link>
+        ) : null}
 
         {isOwner ? <MacroButton recipeId={recipe.id} hasMacros={!!macros} /> : null}
       </header>
