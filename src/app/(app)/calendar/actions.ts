@@ -65,10 +65,14 @@ export async function movePlannedMeal(id: string, plannedOn: string) {
   return {};
 }
 
-export async function deletePlannedMeal(id: string) {
+export async function deletePlannedMeal(
+  id: string,
+): Promise<{ error?: string }> {
   const supabase = await createClient();
-  await supabase.from("planned_meals").delete().eq("id", id);
+  const { error } = await supabase.from("planned_meals").delete().eq("id", id);
+  if (error) return { error: error.message };
   revalidatePlanner();
+  return {};
 }
 
 /**

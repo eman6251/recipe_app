@@ -530,7 +530,12 @@ export function WeekView({
 
                         <button
                           onClick={() =>
-                            startTransition(() => deletePlannedMeal(meal.id))
+                            startTransition(async () => {
+                              const result = await deletePlannedMeal(meal.id);
+                              if (result?.error) {
+                                toast(`Couldn't remove ${meal.recipes.title}.`);
+                              }
+                            })
                           }
                           aria-label="Remove"
                           className="shrink-0 rounded p-1 text-zinc-400 hover:bg-black/5 hover:text-red-600 dark:hover:bg-white/10"

@@ -18,6 +18,8 @@ import { macrosForServings, sumMacros, ZERO_MACROS } from "@/lib/macros";
 import type { Macros } from "@/lib/types";
 import { MealDialog, SLOT_ORDER, SLOT_STYLES } from "@/components/meal-dialog";
 import { deletePlannedMeal, movePlannedMeal } from "./actions";
+import { MonthCompact } from "./month-compact";
+import { DaySheet } from "./day-sheet";
 import { useToast } from "@/components/toast";
 import type {
   PlannedMealWithRecipe,
@@ -126,6 +128,8 @@ export function CalendarView({
   recipes: RecipeOption[];
 }) {
   const [dialogDate, setDialogDate] = useState<string | null>(null);
+  /** Which day the phone's sheet is showing, if any. */
+  const [sheetDate, setSheetDate] = useState<string | null>(null);
   const [hover, setHover] = useState<{
     iso: string;
     style: React.CSSProperties;
@@ -242,7 +246,19 @@ export function CalendarView({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-black/10 bg-surface dark:border-white/10">
+      <MonthCompact
+        year={year}
+        monthIdx={monthIdx}
+        mealsByDate={byDate}
+        onPickDay={setSheetDate}
+      />
+
+      {/*
+        The desktop grid in full. Hidden on a phone rather than squeezed:
+        every way into it — the hover popover, the add button that appears on
+        hover, dragging a meal between days — needs a pointer.
+      */}
+      <div className="hidden overflow-x-auto rounded-xl border border-black/10 bg-surface md:block dark:border-white/10">
         <div className="min-w-[720px]">
           <div className="grid grid-cols-7 border-b border-black/10 dark:border-white/10">
             {WEEKDAY_LABELS.map((d) => (
@@ -356,7 +372,14 @@ export function CalendarView({
                           <span className="truncate">{meal.recipes.title}</span>
                           <button
                             onClick={() =>
-                              startTransition(() => deletePlannedMeal(meal.id))
+                              startTransition(async () => {
+                              const result = await deletePlannedMeal(meal.id);
+                              if (result?.error) {
+                                toast(
+                                  `Couldn't remove ${meal.recipes.title}.`,
+                                );
+                              }
+                            })
                             }
                             aria-label="Remove"
                             className="ml-auto shrink-0 opacity-0 transition-opacity group-hover/meal:opacity-70 hover:!opacity-100"
@@ -389,6 +412,20 @@ export function CalendarView({
             document.body,
           )
         : null}
+
+      {sheetDate ? (
+        <DaySheet
+          iso={sheetDate}
+          meals={byDate.get(sheetDate) ?? []}
+          onClose={() => setSheetDate(null)}
+          onAdd={() => {
+            // The sheet steps aside for the dialog, so closing the dialog
+            // drops you back on the calendar rather than behind a sheet.
+            setDialogDate(sheetDate);
+            setSheetDate(null);
+          }}
+        />
+      ) : null}
 
       {dialogDate ? (
         <MealDialog
