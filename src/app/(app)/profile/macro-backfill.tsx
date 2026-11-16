@@ -2,7 +2,10 @@
 
 import { useRef, useState } from "react";
 import { Flame, LoaderCircle, Square } from "lucide-react";
-import { computeMacros } from "@/app/(app)/recipes/[id]/macro-actions";
+import {
+  computeMacros,
+  rollUpStoredMacros,
+} from "@/app/(app)/recipes/[id]/macro-actions";
 import {
   listRecipesForBackfill,
   type BackfillTarget,
@@ -25,7 +28,7 @@ import {
 type Failure = { title: string; reason: string };
 
 export function MacroBackfill() {
-  const [mode, setMode] = useState<"missing" | "all">("missing");
+  const [mode, setMode] = useState<"missing" | "all" | "totals">("missing");
   const [reweigh, setReweigh] = useState(false);
   const [targets, setTargets] = useState<BackfillTarget[] | null>(null);
   const [done, setDone] = useState(0);
@@ -57,13 +60,16 @@ export function MacroBackfill() {
       setDone(i);
 
       try {
-        const result = await computeMacros(recipe.id, mode === "all", reweigh);
+        const result =
+          mode === "totals"
+            ? await rollUpStoredMacros(recipe.id)
+            : await computeMacros(recipe.id, mode === "all", reweigh);
         if (!result.ok) {
-          failed.push({ title: recipe.title, reason: result.error });
+          failed.push({ title: recipe.title, reason: result.error ?? "Failed" });
           setFailures([...failed]);
           // The daily AI cap stops the run rather than failing every
           // remaining recipe one at a time against a limit that won't move.
-          if (/daily limit/i.test(result.error)) {
+          if (/daily limit/i.test(result.error ?? "")) {
             setFinished(
               "Stopped — the daily AI limit was reached. The recipes done so far are saved.",
             );
@@ -100,6 +106,7 @@ export function MacroBackfill() {
           [
             ["missing", "Only missing"],
             ["all", "All recipes"],
+            ["totals", "Totals only"],
           ] as const
         ).map(([value, label]) => (
           <button
@@ -122,7 +129,16 @@ export function MacroBackfill() {
         ))}
       </div>
 
-      <label className="flex items-start gap-2.5">
+      {mode === "totals" ? (
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          Re-adds each recipe&apos;s ingredients into its totals using figures
+          already stored against them. No API calls, nothing billed, and it
+          takes seconds — the fix when a recipe total is missing something
+          its ingredients already had.
+        </p>
+      ) : null}
+
+      <label className={`flex items-start gap-2.5 ${mode === "totals" ? "hidden" : ""}`}>
         <input
           type="checkbox"
           checked={reweigh}
@@ -183,10 +199,20 @@ export function MacroBackfill() {
           ) : (
             <>
               <p>
-                This will compute macros for <strong>{total}</strong>{" "}
-                {total === 1 ? "recipe" : "recipes"}, a few AI and USDA calls
-                each, one at a time. Roughly a minute per ten, and it bills to
-                the app&apos;s API key.
+                {mode === "totals" ? (
+                  <>
+                    This will re-total <strong>{total}</strong>{" "}
+                    {total === 1 ? "recipe" : "recipes"} from figures already
+                    stored. Free, and quick.
+                  </>
+                ) : (
+                  <>
+                    This will compute macros for <strong>{total}</strong>{" "}
+                    {total === 1 ? "recipe" : "recipes"}, a few AI and USDA
+                    calls each, one at a time. Roughly a minute per ten, and it
+                    bills to the app&apos;s API key.
+                  </>
+                )}
               </p>
               <div className="flex gap-2">
                 <button
@@ -216,7 +242,9 @@ export function MacroBackfill() {
           <Flame className="h-4 w-4" />
           {mode === "missing"
             ? "Compute missing macros"
-            : "Recompute all macros"}
+            : mode === "all"
+              ? "Recompute all macros"
+              : "Re-total from stored figures"}
         </button>
       )}
 

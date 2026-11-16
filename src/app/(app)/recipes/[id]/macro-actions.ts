@@ -341,11 +341,15 @@ export async function computeMacros(
   );
 
   const servings = recipe.servings || 1;
+  // Built field by field, which is how fibre went missing from the recipe
+  // total while being present on every ingredient under it. Anything added
+  // to Macros has to be added here too.
   const per_serving = roundMacros({
     kcal: total.kcal / servings,
     protein_g: total.protein_g / servings,
     carbs_g: total.carbs_g / servings,
     fat_g: total.fat_g / servings,
+    fiber_g: total.fiber_g != null ? total.fiber_g / servings : null,
   });
   const { error } = await supabase
     .from("recipes")
@@ -364,4 +368,55 @@ export async function computeMacros(
     lines,
     skipped,
   };
+}
+
+/**
+ * Re-total a recipe from the per-ingredient macros already stored on it.
+ *
+ * No USDA, no Claude, no cost. Every ingredient keeps its own computed
+ * macros, so when the recipe-level total turns out to be missing something
+ * the ingredients had all along — as fibre was — the fix is arithmetic
+ * rather than another paid pass over the whole recipe box.
+ */
+export async function rollUpStoredMacros(
+  recipeId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const { data: recipe, error } = await supabase
+    .from("recipes")
+    .select("servings, recipe_ingredients (macros)")
+    .eq("id", recipeId)
+    .maybeSingle();
+
+  if (error) return { ok: false, error: error.message };
+  if (!recipe) return { ok: false, error: "Recipe not found." };
+
+  const lines = (recipe.recipe_ingredients ?? []) as { macros: Macros | null }[];
+  const computed = lines.filter((l) => l.macros);
+  if (computed.length === 0) {
+    return { ok: false, error: "No computed ingredients to total." };
+  }
+
+  let total: Macros = { kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0, fiber_g: null };
+  for (const line of computed) total = addMacros(total, line.macros!);
+
+  const servings = (recipe.servings as number) || 1;
+  const per_serving = roundMacros({
+    kcal: total.kcal / servings,
+    protein_g: total.protein_g / servings,
+    carbs_g: total.carbs_g / servings,
+    fat_g: total.fat_g / servings,
+    fiber_g: total.fiber_g != null ? total.fiber_g / servings : null,
+  });
+
+  const { error: saveError } = await supabase
+    .from("recipes")
+    .update({ macros_per_serving: per_serving })
+    .eq("id", recipeId);
+  if (saveError) return { ok: false, error: saveError.message };
+
+  revalidatePath(`/recipes/${recipeId}`);
+  revalidatePath("/week");
+  return { ok: true };
 }

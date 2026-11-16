@@ -18,7 +18,7 @@ export type BackfillTarget = { id: string; title: string };
  * else's recipe is nobody's idea of a backfill.
  */
 export async function listRecipesForBackfill(
-  mode: "missing" | "all",
+  mode: "missing" | "all" | "totals",
 ): Promise<BackfillTarget[]> {
   const supabase = await createClient();
   const user = await getCurrentUser();
@@ -30,6 +30,8 @@ export async function listRecipesForBackfill(
     .eq("user_id", user.id)
     .order("created_at", { ascending: true });
 
+  // "totals" re-adds every recipe, including ones whose total exists but
+  // is missing something the ingredients under it already have.
   if (mode === "missing") query = query.is("macros_per_serving", null);
 
   const { data, error } = await query;
