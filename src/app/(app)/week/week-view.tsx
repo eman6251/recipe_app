@@ -30,6 +30,7 @@ import type {
 import type { Macros } from "@/lib/types";
 import { useToast } from "@/components/toast";
 import { MacroDonut } from "@/components/macro-donut";
+import { dailyFiberGoal } from "@/lib/macros";
 
 function mealMacros(meal: PlannedMealWithRecipe): Macros | null {
   return macrosForServings(meal.recipes.macros_per_serving, meal.servings);
@@ -45,6 +46,7 @@ function MacroStrip({ m, label }: { m: Macros; label?: string }) {
       <span>{Math.round(m.protein_g)}g protein</span>
       <span>{Math.round(m.carbs_g)}g carbs</span>
       <span>{Math.round(m.fat_g)}g fat</span>
+      {m.fiber_g != null ? <span>{Math.round(m.fiber_g)}g fibre</span> : null}
     </span>
   );
 }
@@ -189,6 +191,17 @@ export function WeekView({
   const prepped = Math.round(scoped.kcal);
   const leeway = goal != null ? goal - prepped : null;
 
+  /*
+   * Fibre against its target, on the same basis as the calories.
+   *
+   * A shortfall here reads the opposite way to calories: under the target is
+   * the problem, over it is fine, so it's shown as a shortfall rather than
+   * leeway and only goes amber when you're short.
+   */
+  const fiberTarget = dailyFiberGoal(dailyCalorieGoal);
+  const scopedFiberTarget = perWeek ? fiberTarget * 7 : fiberTarget;
+  const fiber = scoped.fiber_g;
+
   // One entry per distinct recipe in the week, with its total portions.
   // A recipe counts as cooked once every planned portion is checked off.
   const prepMap = new Map<
@@ -295,6 +308,30 @@ export function WeekView({
                   ? `${leeway.toLocaleString()} left`
                   : `${Math.abs(leeway).toLocaleString()} over`}
               </span>
+              {fiber != null ? (
+                <span className="w-full text-xs">
+                  <span className="text-zinc-500 dark:text-zinc-400">
+                    Fibre{" "}
+                  </span>
+                  <span className="font-medium tabular-nums">
+                    {Math.round(fiber)}
+                    <span className="text-zinc-400 dark:text-zinc-500">
+                      /{scopedFiberTarget}g
+                    </span>
+                  </span>{" "}
+                  <span
+                    className={
+                      fiber >= scopedFiberTarget
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-amber-600 dark:text-amber-400"
+                    }
+                  >
+                    {fiber >= scopedFiberTarget
+                      ? "target met"
+                      : `${Math.round(scopedFiberTarget - fiber)}g short`}
+                  </span>
+                </span>
+              ) : null}
               <span className="w-full text-[11px] text-zinc-400 dark:text-zinc-500">
                 {perWeek
                   ? `prepped kcal vs ${dailyCalorieGoal!.toLocaleString()}/day × 7`
@@ -519,6 +556,14 @@ export function WeekView({
                               <span className="hidden md:inline" title="Fat">
                                 F {Math.round(m.fat_g)}g
                               </span>
+                              {m.fiber_g != null ? (
+                                <span
+                                  className="hidden md:inline"
+                                  title="Fibre"
+                                >
+                                  Fib {Math.round(m.fiber_g)}g
+                                </span>
+                              ) : null}
                               <span className="font-medium text-zinc-700 dark:text-zinc-200">
                                 {Math.round(m.kcal)} kcal
                               </span>

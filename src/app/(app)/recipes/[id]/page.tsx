@@ -89,6 +89,11 @@ export default async function RecipeDetailPage({
               {Math.round(macros.kcal)} kcal · {Math.round(macros.protein_g)}g
               protein · {Math.round(macros.carbs_g)}g carbs ·{" "}
               {Math.round(macros.fat_g)}g fat
+              {/* Only when there's a figure: a recipe computed before fibre
+                  was tracked has none, and printing 0g would be a claim. */}
+              {macros.fiber_g != null
+                ? ` · ${Math.round(macros.fiber_g)}g fibre`
+                : null}
               <span className="text-zinc-400 dark:text-zinc-500">
                 / serving (estimated)
               </span>

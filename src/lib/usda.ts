@@ -11,6 +11,7 @@ const KCAL = [1008, 2047, 2048]; // Energy; Atwater variants as fallbacks
 const PROTEIN = 1003;
 const FAT = 1004;
 const CARBS = 1005;
+const FIBER = 1079; // Fiber, total dietary
 
 type FdcNutrient = {
   nutrientId: number;
@@ -43,11 +44,17 @@ function extractMacros(food: FdcFood): Macros | null {
     return null;
   }
 
+  // Fibre isn't required for a usable match — plenty of entries, especially
+  // Branded ones, simply don't carry it — so a food without it still counts,
+  // it just can't contribute to the total.
+  const fiber = byId.get(FIBER);
+
   return {
     kcal: byId.get(kcalId)!,
     protein_g: protein,
     carbs_g: carbs,
     fat_g: fat,
+    fiber_g: fiber ?? null,
   };
 }
 
@@ -204,19 +211,37 @@ export function scaleMacros(per100g: Macros, grams: number): Macros {
     protein_g: per100g.protein_g * f,
     carbs_g: per100g.carbs_g * f,
     fat_g: per100g.fat_g * f,
+    fiber_g: per100g.fiber_g != null ? per100g.fiber_g * f : null,
   };
 }
 
+/**
+ * Adding fibre keeps the distinction between none and unknown: a total is a
+ * number only once something has contributed one, and an ingredient with no
+ * figure adds nothing rather than adding zero.
+ */
 export function addMacros(a: Macros, b: Macros): Macros {
+  const fiber =
+    a.fiber_g == null && b.fiber_g == null
+      ? null
+      : (a.fiber_g ?? 0) + (b.fiber_g ?? 0);
+
   return {
     kcal: a.kcal + b.kcal,
     protein_g: a.protein_g + b.protein_g,
     carbs_g: a.carbs_g + b.carbs_g,
     fat_g: a.fat_g + b.fat_g,
+    fiber_g: fiber,
   };
 }
 
 export function roundMacros(m: Macros): Macros {
   const r = (n: number) => Math.round(n * 10) / 10;
-  return { kcal: r(m.kcal), protein_g: r(m.protein_g), carbs_g: r(m.carbs_g), fat_g: r(m.fat_g) };
+  return {
+    kcal: r(m.kcal),
+    protein_g: r(m.protein_g),
+    carbs_g: r(m.carbs_g),
+    fat_g: r(m.fat_g),
+    fiber_g: m.fiber_g != null ? r(m.fiber_g) : null,
+  };
 }

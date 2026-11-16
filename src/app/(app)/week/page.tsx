@@ -52,7 +52,12 @@ export default async function WeekPage({
             day of eating, it&apos;s a day you haven&apos;t finished planning, and
             averaging it in reports the week as leaner than you intend to eat.
             Three rather than four because dessert isn&apos;t an everyday thing.
-            Week totals still count everything. Recipes without computed macros are
+            Week totals still count everything. <strong>Fibre</strong> is
+            measured against 14g per 1,000 calories of your goal, which is how
+            the dietary reference is actually written — someone eating 3,000
+            calories needs more than someone eating 1,800. Recipes computed
+            before fibre was tracked carry no figure and don&apos;t count
+            toward it; recompute them from your profile to fill them in. Recipes without computed macros are
             called out rather than silently counted as zero. Macros are
             estimates and this part of the app is still being refined, so treat
             weekly totals as a guide. Set a{" "}

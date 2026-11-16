@@ -7,6 +7,13 @@ export type Macros = {
   protein_g: number;
   carbs_g: number;
   fat_g: number;
+  /**
+   * Optional, and deliberately not defaulted to zero: every recipe computed
+   * before fibre was tracked has none recorded, and "we never measured this"
+   * has to stay distinguishable from "this food has no fibre". Zeroing it
+   * would quietly tell you a week of beans and oats contained none.
+   */
+  fiber_g?: number | null;
 };
 
 export type Recipe = {
