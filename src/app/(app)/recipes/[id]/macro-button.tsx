@@ -79,6 +79,18 @@ export function MacroButton({
               ))}
             </ul>
           ) : null}
+          {result.lines.some((l) => l.stateWarning) ? (
+            <p className="mt-2 rounded-lg border border-red-500/40 px-2.5 py-2 text-xs">
+              Some ingredients matched a USDA entry in the wrong state —
+              drained beans against a dry seed, or dry pasta against a cooked
+              bowl. Water is most of the difference between the two, so those
+              lines are a long way out. They&apos;re marked in the breakdown;
+              renaming the ingredient to say which it is (&ldquo;canned
+              chickpeas&rdquo;, &ldquo;dry lentils&rdquo;) and recomputing
+              usually fixes it.
+            </p>
+          ) : null}
+
           {dominant ? (
             <p className="mt-2 rounded-lg border border-amber-500/40 px-2.5 py-2 text-xs">
               <strong>{dominant.item}</strong> accounts for{" "}
@@ -129,7 +141,14 @@ export function MacroButton({
                           "—"
                         )}
                       </td>
-                      <td className="py-1 pr-2">{line.match ?? "no match"}</td>
+                      <td className="py-1 pr-2">
+                        {line.match ?? "no match"}
+                        {line.stateWarning ? (
+                          <span className="block text-red-600 dark:text-red-400">
+                            {line.stateWarning}
+                          </span>
+                        ) : null}
+                      </td>
                       <td className="py-1 text-right whitespace-nowrap">
                         {line.kcal != null ? `${Math.round(line.kcal)} kcal` : "—"}
                       </td>

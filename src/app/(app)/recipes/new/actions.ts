@@ -75,6 +75,8 @@ Rules:
 - Gram estimates drive the whole nutrition calculation, and one wrong line can dominate it, so be deliberate about these:
   - A named packaged product with no quantity means ONE standard retail package, not an unbounded amount. Use the real package size (a bag of Trader Joe's noodles is 16oz/454g, a can of beans 15oz/425g, a block of tofu 14oz/397g). Never inflate to "enough for the servings" — recipes are written around the package.
   - Weigh things AS PURCHASED, in the state the ingredient names: dry pasta dry, raw meat raw, canned goods drained only if the line says drained. Do not give the cooked weight of something listed uncooked — pasta more than doubles in weight when boiled, and that error alone can double a recipe's calories.
+  - Canned goods are weighed DRAINED unless the recipe clearly uses the liquid. A 15oz/425g can of beans or chickpeas drains to roughly 240g; a can of tomatoes is used whole. The gross tin weight for something that gets rinsed overstates the line by most of half.
+  - Keep the ingredient's state in the name you give it — "canned chickpeas", "dry lentils", "cooked rice" — because the nutrition lookup downstream matches on it, and a drained weight against a dry-seed entry more than doubles the line.
   - Sanity-check the total against the servings before answering. Add up every line: a main course lands near 350–550g per serving. If your numbers imply a kilo a head, one of them is wrong — usually the bulkiest carb.
 - If servings aren't stated, estimate from total quantities.
 - Steps should be concise and imperative. Split run-on caption text into proper steps.

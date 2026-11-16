@@ -14,6 +14,7 @@ import {
   addMacros,
   roundMacros,
   UsdaAuthError,
+  stateOf,
   type UsdaMatch,
 } from "@/lib/usda";
 import type { Macros, RecipeIngredient } from "@/lib/types";
@@ -24,6 +25,13 @@ export type MacroLine = {
   /** USDA food description it matched, or null if skipped. */
   match: string | null;
   kcal: number | null;
+  /**
+   * Set when the ingredient and the entry it matched disagree about state —
+   * drained chickpeas against a dry seed, dry pasta against a cooked bowl.
+   * The costliest kind of wrong match and the hardest to notice, because the
+   * food is right and only the water is missing.
+   */
+  stateWarning?: string;
 };
 
 export type MacroComputeResult =
@@ -56,6 +64,7 @@ const GRAM_SYSTEM_PROMPT = `Estimate the total weight in grams of each ingredien
 These numbers drive the whole nutrition calculation and one wrong line can dominate it, so:
 - A named packaged product with no quantity means ONE standard retail package, not an unbounded amount. Use the real package size (a bag of Trader Joe's noodles is 16oz/454g, a can of beans 15oz/425g). Never inflate to "enough for the servings" — recipes are written around the package.
 - Weigh things AS PURCHASED, in the state the line names: dry pasta dry, raw meat raw. Pasta more than doubles in weight when boiled, and that error alone can double a recipe's calories.
+- Canned goods are weighed DRAINED unless the recipe clearly uses the liquid. A 15oz/425g can of beans or chickpeas drains to roughly 240g; a can of tomatoes is used whole. Giving the gross tin weight for something that gets rinsed overstates the line by most of half.
 - Sanity-check the total against the servings before answering. A main course lands near 350–550g per serving; if your numbers imply a kilo a head, one of them is wrong — usually the bulkiest carb.
 
 Give your best estimate; use null only when genuinely impossible.`;
@@ -152,8 +161,16 @@ async function chooseMatches(
       const response = await client.messages.parse({
         model: "claude-sonnet-5",
         max_tokens: 4000,
-        system:
-          "For each recipe ingredient, pick the USDA food entry that best represents it nutritionally as used in home cooking. Recipe quantities describe the as-purchased state, so prefer raw/dry entries over cooked ones. Return null when no candidate is genuinely the same food (a wrong-food match is worse than no match).",
+        system: `For each recipe ingredient, pick the USDA food entry that best represents it nutritionally as used in home cooking.
+
+Match the STATE of the ingredient, not just the food:
+- The entry must describe the ingredient in the state the recipe weighs it. This matters more than any other consideration, because water is most of the difference between states.
+- Canned, tinned, jarred, drained or pre-cooked ingredients must match a canned or cooked entry. Never match them to a raw or dry entry: "chickpeas, mature seeds, raw" is a dry seed at roughly 378 kcal/100g, while drained canned chickpeas are about 140 — picking the wrong one more than doubles that line.
+- Dry pasta, rice, grains, lentils and flour, weighed as purchased, must match a dry or uncooked entry. A cooked entry against a dry weight undercounts by up to three times, for the same reason in reverse.
+- Raw meat, fish and vegetables weighed as purchased match raw entries.
+- When the ingredient doesn't say, assume as-purchased: raw for meat and vegetables, dry for pasta and grains.
+
+Return null when no candidate is genuinely the same food in a usable state (a wrong-food or wrong-state match is worse than no match).`,
         messages: [{ role: "user", content: listing }],
         output_config: { format: zodOutputFormat(MatchChoices) },
       });
@@ -317,11 +334,21 @@ export async function computeMacros(
     const lineMacros = roundMacros(scaleMacros(match.per_100g, grams));
     total = addMacros(total, lineMacros);
     matched++;
+
+    const wanted = stateOf(ing.item);
+    const got = stateOf(match.description);
+    const mismatched = wanted !== "unstated" && got !== "unstated" && wanted !== got;
+
     lines.push({
       item: ing.item,
       grams,
       match: match.description,
       kcal: lineMacros.kcal,
+      stateWarning: mismatched
+        ? wanted === "hydrated"
+          ? "matched a dry entry — likely far too high"
+          : "matched a prepared entry — likely far too low"
+        : undefined,
     });
     updates.push({ id: ing.id, grams, fdc_id: match.fdc_id, macros: lineMacros });
   }

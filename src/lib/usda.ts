@@ -173,12 +173,43 @@ export async function searchUsdaCandidates(
  * olive oil"). Descriptions are comma-inverted ("Oil, olive, extra virgin"),
  * so a head-noun match is the strongest signal.
  */
+/**
+ * What state an ingredient line is in, which decides which USDA entry is the
+ * right one for it.
+ *
+ * This used to be a one-way preference for raw and dry, which is right for
+ * pasta and meat — a recipe weighing 200g of spaghetti means dry spaghetti,
+ * and matching it to a cooked entry undercounts threefold — and badly wrong
+ * for anything bought already hydrated. "Canned chickpeas" matched to
+ * "Chickpeas, mature seeds, raw" scores 378 kcal per 100g against what is
+ * really about 140: the raw entry describes a dry seed that hasn't yet
+ * absorbed its own weight in water. On one salad that error was 2,300
+ * calories, more than half the recipe.
+ *
+ * So the question isn't "raw or cooked", it's "does this entry describe the
+ * same state as the thing in the bowl".
+ */
+type FoodState = "hydrated" | "dry" | "unstated";
+
+const HYDRATED_WORDS = [
+  "canned", "tinned", "jarred", "drained", "cooked", "boiled", "steamed",
+  "rinsed", "precooked", "ready", "leftover",
+];
+const DRY_WORDS = ["dry", "dried", "uncooked", "raw", "fresh"];
+
+export function stateOf(text: string): FoodState {
+  const tokens = text.toLowerCase().split(/[^a-z]+/).filter(Boolean);
+  if (HYDRATED_WORDS.some((w) => tokens.includes(w))) return "hydrated";
+  if (DRY_WORDS.some((w) => tokens.includes(w))) return "dry";
+  return "unstated";
+}
+
 export function pickBestLocal(
   query: string,
   candidates: UsdaMatch[],
 ): UsdaMatch | null {
   const queryTokens = query.toLowerCase().split(/[^a-z]+/).filter(Boolean);
-  const queryCooked = queryTokens.includes("cooked");
+  const queryState = stateOf(query);
 
   let best: { match: UsdaMatch; score: number } | null = null;
   for (const match of candidates) {
@@ -190,11 +221,25 @@ export function pickBestLocal(
     if (queryTokens.some((t) => head === t || head.startsWith(t))) score += 3;
     score += queryTokens.filter((t) => descTokens.includes(t)).length;
     score -= descTokens.length * 0.1; // prefer simpler foods
-    if (desc.includes("raw")) score += 0.3; // base ingredient over prepared
 
-    // Recipe grams describe the as-purchased state (dry noodles, raw meat);
-    // "cooked" nutrient data against dry grams undercounts up to 3×.
-    if (!queryCooked) {
+    /*
+     * Match the state, don't assume one.
+     *
+     * A line that names its state gets an entry in that state; a line that
+     * doesn't falls back to the old preference for the base ingredient,
+     * which is right for the things people weigh as purchased — meat, dry
+     * pasta, flour — and is what "500g chicken thighs" means.
+     */
+    const matchState = stateOf(match.description);
+    if (queryState === "hydrated") {
+      if (matchState === "hydrated") score += 2;
+      // The costly direction: a dry seed's figures against a drained weight.
+      if (matchState === "dry") score -= 3;
+    } else if (queryState === "dry") {
+      if (matchState === "dry") score += 1;
+      if (matchState === "hydrated") score -= 2;
+    } else {
+      if (desc.includes("raw")) score += 0.3;
       if (descTokens.includes("cooked")) score -= 2;
       if (descTokens.includes("dry") || descTokens.includes("dried")) score += 0.3;
     }
