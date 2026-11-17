@@ -36,7 +36,23 @@ function mealMacros(meal: PlannedMealWithRecipe): Macros | null {
   return macrosForServings(meal.recipes.macros_per_serving, meal.servings);
 }
 
-function MacroStrip({ m, label }: { m: Macros; label?: string }) {
+function MacroStrip({
+  m,
+  label,
+  fiberTarget,
+}: {
+  m: Macros;
+  label?: string;
+  /**
+   * When given, fibre is shown against it rather than on its own. Grams
+   * alone don't answer the question — 18g of fibre is good or poor
+   * depending entirely on what you were aiming for.
+   */
+  fiberTarget?: number;
+}) {
+  const fiber = m.fiber_g;
+  const short = fiberTarget != null && fiber != null && fiber < fiberTarget;
+
   return (
     <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-zinc-500 dark:text-zinc-400">
       {label ? <span className="font-medium">{label}</span> : null}
@@ -46,7 +62,21 @@ function MacroStrip({ m, label }: { m: Macros; label?: string }) {
       <span>{Math.round(m.protein_g)}g protein</span>
       <span>{Math.round(m.carbs_g)}g carbs</span>
       <span>{Math.round(m.fat_g)}g fat</span>
-      {m.fiber_g != null ? <span>{Math.round(m.fiber_g)}g fibre</span> : null}
+      {fiber != null ? (
+        fiberTarget != null ? (
+          <span
+            className={
+              short
+                ? "text-amber-600 dark:text-amber-400"
+                : "text-emerald-600 dark:text-emerald-400"
+            }
+          >
+            {Math.round(fiber)}/{fiberTarget}g fibre
+          </span>
+        ) : (
+          <span>{Math.round(fiber)}g fibre</span>
+        )
+      ) : null}
     </span>
   );
 }
@@ -355,10 +385,12 @@ export function WeekView({
             <MacroStrip
               m={scoped}
               label={perWeek ? "Week total:" : "Daily average:"}
+              fiberTarget={scopedFiberTarget}
             />
             <MacroStrip
               m={perWeek ? avg : weekTotal}
               label={perWeek ? "Daily average:" : "Week total:"}
+              fiberTarget={perWeek ? fiberTarget : fiberTarget * 7}
             />
           </div>
         </div>
@@ -480,7 +512,9 @@ export function WeekView({
                   ) : null}
                 </h3>
                 <div className="flex items-center gap-3">
-                  {dayTotal ? <MacroStrip m={dayTotal} /> : null}
+                  {dayTotal ? (
+                    <MacroStrip m={dayTotal} fiberTarget={fiberTarget} />
+                  ) : null}
                   <button
                     onClick={() => setDialogDate(iso)}
                     className="inline-flex items-center gap-1 rounded-lg border border-black/10 px-2.5 py-1 text-xs font-medium text-zinc-600 hover:bg-black/5 dark:border-white/10 dark:text-zinc-400 dark:hover:bg-white/5"
