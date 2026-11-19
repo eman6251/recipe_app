@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { THEME_COOKIE, isThemeChoice } from "@/lib/theme";
 import { getCurrentUser } from "@/lib/supabase/user";
 import { ProfileLink } from "./profile-link";
 import { PageHeader } from "@/components/page-header";
@@ -15,6 +17,8 @@ export default async function Home({
   const { author } = await searchParams;
   const supabase = await createClient();
   const user = await getCurrentUser();
+  const storedTheme = (await cookies()).get(THEME_COOKIE)?.value;
+  const theme = isThemeChoice(storedTheme) ? storedTheme : "system";
 
   const [data, profile] = await Promise.all([
     getHomeData(author),
@@ -44,6 +48,7 @@ export default async function Home({
             <ProfileLink
               avatarUrl={profile?.avatar_url ?? null}
               name={profile?.display_name ?? null}
+              theme={theme}
             />
           ) : null
         }

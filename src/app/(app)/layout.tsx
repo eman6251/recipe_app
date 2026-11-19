@@ -3,6 +3,8 @@ import { InstallPrompt } from "@/components/install-prompt";
 import { TourProvider } from "@/components/tour/tour-provider";
 import { ToastProvider } from "@/components/toast";
 import { tourInvitation } from "@/lib/tour";
+import { cookies } from "next/headers";
+import { THEME_COOKIE, isThemeChoice } from "@/lib/theme";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/user";
 
@@ -24,6 +26,9 @@ export default async function AppLayout({
     .eq("id", user?.id ?? "")
     .maybeSingle();
 
+  const storedTheme = (await cookies()).get(THEME_COOKIE)?.value;
+  const theme = isThemeChoice(storedTheme) ? storedTheme : "system";
+
   const invitation = user
     ? tourInvitation(user.created_at, profile?.tour_seen_at)
     : null;
@@ -35,6 +40,7 @@ export default async function AppLayout({
         avatarUrl={profile?.avatar_url ?? null}
         signedIn={!!user}
         userId={user?.id ?? null}
+        theme={theme}
       />
       {/* Bottom padding clears the mobile tab bar, which grew. */}
       <main className="pb-28 md:pb-0">

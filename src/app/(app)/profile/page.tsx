@@ -1,20 +1,18 @@
 import Link from "next/link";
-import { SubmitButton } from "@/components/submit-button";
-import { cookies } from "next/headers";
-import { UsersRound } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/user";
 import { updateProfile } from "./actions";
 import { AvatarUpload } from "./avatar-upload";
-import { ThemePicker } from "@/components/theme-picker";
-import { TourButton } from "@/components/tour/tour-button";
-import { MacroBackfill } from "./macro-backfill";
-import { THEME_COOKIE, isThemeChoice } from "@/lib/theme";
 
 const inputClass =
   "rounded-lg border border-black/15 bg-canvas px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-white/15";
 
+/**
+ * Who you are. Targets, defaults and the bulk tools moved to /settings when
+ * the avatar menu grew an entry for each — one page holding both a display
+ * name and a billable macro recomputation was really two pages.
+ */
 export default async function ProfilePage({
   searchParams,
 }: {
@@ -24,56 +22,30 @@ export default async function ProfilePage({
   const supabase = await createClient();
   const user = await getCurrentUser();
 
-  const stored = (await cookies()).get(THEME_COOKIE)?.value;
-  const themeChoice = isThemeChoice(stored) ? stored : "system";
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("username, display_name, avatar_url")
+    .eq("id", user?.id ?? "")
+    .maybeSingle();
 
-  /*
-   * Two reads, not one, and the split is the point.
-   *
-   * The identity fields are thrown on if they fail: discarding that error
-   * renders every box empty, which looks exactly like an account nobody has
-   * filled in, and saving from there would write the blanks back over a real
-   * username.
-   *
-   * The calorie goal is fetched apart from them because it's optional and,
-   * until its migration is run, absent — and PostgREST fails a whole select
-   * over one unknown column. Asking for it separately means a column that
-   * isn't there yet costs you that one field instead of the entire page.
-   */
-  const [
-    { data: profile, error: profileError },
-    { data: goalRow, error: goalError },
-  ] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("username, display_name, avatar_url, share_new_recipes")
-      .eq("id", user?.id ?? "")
-      .maybeSingle(),
-    supabase
-      .from("profiles")
-      .select("daily_calorie_goal")
-      .eq("id", user?.id ?? "")
-      .maybeSingle(),
-  ]);
-
+  // Thrown rather than swallowed: an empty form looks exactly like an account
+  // nobody has filled in, and saving from there writes the blanks back over a
+  // real username.
   if (profileError) {
     throw new Error(`Couldn't load your profile: ${profileError.message}`);
   }
 
-  const goalAvailable = !goalError;
-
   return (
     <>
       <PageHeader
-        title="Profile"
+        title="My profile"
         description="How you show up on recipes you share."
         info={
           <>
             Your display name and photo appear as the author on any recipe you
-            share. <strong>Share new recipes automatically</strong> only
-            affects recipes added after you turn it on — it never publishes
-            anything you&apos;ve already written. Individual recipes can always be
-            shared or made private from their own page.
+            share — your email never does. Your username is also what you can
+            sign in with, instead of the email. Targets, defaults and the
+            walkthrough live under <strong>Settings</strong>.
           </>
         }
       />
@@ -122,112 +94,15 @@ export default async function ProfilePage({
             </span>
           </label>
 
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium">Daily calorie goal</span>
-            <input
-              name="daily_calorie_goal"
-              type="number"
-              inputMode="numeric"
-              min={500}
-              max={10000}
-              step={50}
-              placeholder="e.g. 2200"
-              defaultValue={goalRow?.daily_calorie_goal ?? ""}
-              disabled={!goalAvailable}
-              className={`${inputClass} w-40 disabled:opacity-50`}
-            />
-            <span className="text-xs text-zinc-500 dark:text-zinc-400">
-              {goalAvailable ? (
-                <>
-                  This Week compares your prepped meals against it, multiplied
-                  out across the seven days. Leave it empty if you&apos;d
-                  rather not see one.
-                </>
-              ) : (
-                <>
-                  Unavailable — the database hasn&apos;t got this column yet.
-                  Run the calorie-goal migration and it&apos;ll turn on.
-                </>
-              )}
-            </span>
-          </label>
-
-          <label className="flex items-start gap-2.5">
-            <input
-              type="checkbox"
-              name="share_new_recipes"
-              defaultChecked={profile?.share_new_recipes ?? false}
-              className="mt-0.5 h-4 w-4 accent-amber-600"
-            />
-            <span className="text-sm">
-              Share new recipes automatically
-              <span className="block text-xs text-zinc-500 dark:text-zinc-400">
-                When on, recipes you add are shared as soon as they&apos;re
-                created. When off, each one stays private until you share it
-                from its page. Either way, this never changes recipes you&apos;ve
-                already added.
-              </span>
-            </span>
-          </label>
-
           <div>
-            <SubmitButton
-              pendingLabel="Saving…"
+            <button
+              type="submit"
               className="inline-flex items-center gap-2 rounded-lg bg-amber-400 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-amber-300"
             >
               Save profile
-            </SubmitButton>
+            </button>
           </div>
         </form>
-
-        {/*
-          Phones only. The desktop top bar already opens friends as a
-          slide-over right beside the avatar, so a second way in from here
-          would just be clutter — but on a phone the tab bar has no room for
-          it and this is where you'd look.
-        */}
-        <div className="border-t border-black/10 pt-4 md:hidden dark:border-white/10">
-          <h3 className="text-sm font-medium">Friends</h3>
-          <p className="mb-2 mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-            Your friend code, requests, and your chats.
-          </p>
-          <Link
-            href="/friends"
-            className="inline-flex items-center gap-2 rounded-lg border border-amber-400/40 px-3 py-2 text-sm font-medium transition-colors hover:border-amber-400/80 hover:bg-amber-400/10"
-          >
-            <UsersRound className="h-4 w-4" />
-            Friends and chat
-          </Link>
-        </div>
-
-        <div className="border-t border-black/10 pt-4 dark:border-white/10">
-          <h3 className="text-sm font-medium">Nutrition across your recipe box</h3>
-          <p className="mb-3 mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-            Works through your recipes one at a time, computing macros from
-            ingredient weights and the USDA database. It&apos;s here rather
-            than on a recipe page because it makes a lot of billable calls and
-            shouldn&apos;t be a mis-tap away.
-          </p>
-          <MacroBackfill />
-        </div>
-
-        <div className="border-t border-black/10 pt-4 dark:border-white/10">
-          <h3 className="text-sm font-medium">Getting around</h3>
-          <p className="mb-2 mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-            A quick pass over meal planning, the shopping list, pantry staples
-            and macros — the parts that don&apos;t work like other recipe apps.
-          </p>
-          <TourButton />
-        </div>
-
-        <div className="border-t border-black/10 pt-4 dark:border-white/10">
-          <h3 className="text-sm font-medium">Appearance</h3>
-          <p className="mb-2 mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-            Applies straight away and is remembered on this device.
-            &ldquo;System&rdquo; follows your computer&apos;s setting.
-          </p>
-          <ThemePicker initial={themeChoice} />
-        </div>
 
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-black/10 pt-4 text-xs text-zinc-500 dark:border-white/10 dark:text-zinc-400">
           <span>Signed in as {user?.email}</span>

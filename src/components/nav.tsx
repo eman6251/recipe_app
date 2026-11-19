@@ -1,22 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { SubmitButton } from "@/components/submit-button";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
   ChefHat,
   BookMarked,
   History,
-  LogOut,
   LayoutGrid,
   Search as SearchIcon,
-  UserRound,
   type LucideIcon,
 } from "lucide-react";
-import { signout } from "@/app/login/actions";
 import { FriendsButton } from "@/components/friends/friends-button";
+import { ProfileMenu } from "@/components/profile-menu";
+import type { ThemeChoice } from "@/lib/theme";
 import { FILTER_GROUPS } from "@/lib/filters";
 import { INGREDIENT_GROUPS } from "@/lib/ingredients";
 
@@ -176,10 +173,13 @@ export function Nav({
   avatarUrl,
   signedIn = true,
   userId,
+  theme,
 }: {
   avatarUrl?: string | null;
   signedIn?: boolean;
   userId?: string | null;
+  /** Read from the cookie on the server so the menu opens on the right one. */
+  theme: ThemeChoice;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -246,37 +246,7 @@ export function Nav({
 
             {userId ? <FriendsButton meId={userId} /> : null}
 
-            <Link
-              href="/profile"
-              aria-label="Profile"
-              className={`block overflow-hidden rounded-full border-2 transition-colors ${
-                isActive(pathname, "/profile")
-                  ? "border-amber-400"
-                  : "border-transparent hover:border-black/15 dark:hover:border-white/20"
-              }`}
-            >
-              {avatarUrl ? (
-                <Image
-                  src={avatarUrl}
-                  alt=""
-                  width={32}
-                  height={32}
-                  sizes="32px"
-                  className="h-8 w-8 object-cover"
-                />
-              ) : (
-                <span className="flex h-8 w-8 items-center justify-center bg-black/5 text-zinc-500 dark:bg-white/10 dark:text-zinc-400">
-                  <UserRound className="h-4 w-4" />
-                </span>
-              )}
-            </Link>
-            <form action={signout}>
-              <SubmitButton
-                aria-label="Sign out"
-                icon={<LogOut className="h-5 w-5" />}
-                className="rounded-lg p-2 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-              />
-            </form>
+            <ProfileMenu key={pathname} avatarUrl={avatarUrl ?? null} theme={theme} />
               </>
             ) : (
               <Link
