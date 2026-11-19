@@ -40,6 +40,17 @@ export function ProfileMenu({
   const [open, setOpen] = useState(false);
   const [choice, setChoice] = useState<ThemeChoice>(theme);
   const rootRef = useRef<HTMLDivElement>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /**
+   * Whether the theme has been changed here, as opposed to merely rendered.
+   *
+   * Without it the effect below writes the cookie on mount as well, which
+   * sounds harmless and isn't: Next prefetches the next page's payload, so a
+   * menu that remounts after a navigation can come back holding the theme as
+   * it was *before* you changed it, and then save that over the top. The
+   * cookie is only ever written by an actual choice now.
+   */
+  const touched = useRef(false);
 
   useEffect(() => {
     if (!open) return;
@@ -57,18 +68,51 @@ export function ProfileMenu({
 
   // The document is outside React's tree, so touching it belongs here.
   useEffect(() => {
+    if (!touched.current) return;
     const attribute = themeAttribute(choice);
     if (attribute) document.documentElement.dataset.theme = attribute;
     else delete document.documentElement.dataset.theme;
     document.cookie = `${THEME_COOKIE}=${choice}; path=/; max-age=31536000; samesite=lax`;
   }, [choice]);
 
+  const pickTheme = (value: ThemeChoice) => {
+    touched.current = true;
+    setChoice(value);
+  };
+
+  /*
+   * Hover opens it on a pointer device, a tap on everything else. The check
+   * runs at event time rather than at mount because a touch also raises
+   * mouseenter, and acting on that would open the menu on the way past.
+   */
+  const hoverOpen = () => {
+    if (!window.matchMedia("(hover: hover)").matches) return;
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setOpen(true);
+  };
+
+  // A grace period, so crossing the gap between the avatar and the menu
+  // beneath it doesn't count as leaving.
+  const hoverClose = () => {
+    if (!window.matchMedia("(hover: hover)").matches) return;
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setOpen(false), 220);
+  };
+
   const items = (
     <>
-      <MenuLink href="/profile" icon={<UserRound className="h-4 w-4" />}>
+      <MenuLink
+        href="/profile"
+        icon={<UserRound className="h-4 w-4" />}
+        onNavigate={() => setOpen(false)}
+      >
         My profile
       </MenuLink>
-      <MenuLink href="/settings" icon={<Settings className="h-4 w-4" />}>
+      <MenuLink
+        href="/settings"
+        icon={<Settings className="h-4 w-4" />}
+        onNavigate={() => setOpen(false)}
+      >
         Settings
       </MenuLink>
 
@@ -89,7 +133,7 @@ export function ProfileMenu({
               aria-checked={choice === value}
               aria-label={label}
               title={label}
-              onClick={() => setChoice(value)}
+              onClick={() => pickTheme(value)}
               className={`flex flex-1 items-center justify-center rounded-md py-1.5 transition-colors ${
                 choice === value
                   ? "bg-amber-400 text-zinc-950"
@@ -117,7 +161,12 @@ export function ProfileMenu({
   );
 
   return (
-    <div ref={rootRef} className="relative">
+    <div
+      ref={rootRef}
+      onMouseEnter={hoverOpen}
+      onMouseLeave={hoverClose}
+      className="relative"
+    >
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label="Account menu"
@@ -178,14 +227,17 @@ function MenuLink({
   href,
   icon,
   children,
+  onNavigate,
 }: {
   href: string;
   icon: React.ReactNode;
   children: React.ReactNode;
+  onNavigate: () => void;
 }) {
   return (
     <Link
       href={href}
+      onClick={onNavigate}
       className="flex items-center gap-2.5 px-3 py-2 text-sm transition-colors hover:bg-black/5 dark:hover:bg-white/5"
     >
       {icon}

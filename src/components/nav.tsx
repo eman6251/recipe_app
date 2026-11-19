@@ -246,7 +246,7 @@ export function Nav({
 
             {userId ? <FriendsButton meId={userId} /> : null}
 
-            <ProfileMenu key={pathname} avatarUrl={avatarUrl ?? null} theme={theme} />
+            <ProfileMenu avatarUrl={avatarUrl ?? null} theme={theme} />
               </>
             ) : (
               <Link
