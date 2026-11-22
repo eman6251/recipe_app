@@ -77,6 +77,7 @@ Rules:
   - Weigh things AS PURCHASED, in the state the ingredient names: dry pasta dry, raw meat raw, canned goods drained only if the line says drained. Do not give the cooked weight of something listed uncooked — pasta more than doubles in weight when boiled, and that error alone can double a recipe's calories.
   - Canned goods are weighed DRAINED unless the recipe clearly uses the liquid. A 15oz/425g can of beans or chickpeas drains to roughly 240g; a can of tomatoes is used whole. The gross tin weight for something that gets rinsed overstates the line by most of half.
   - Keep the ingredient's state in the name you give it — "canned chickpeas", "dry lentils", "cooked rice" — because the nutrition lookup downstream matches on it, and a drained weight against a dry-seed entry more than doubles the line.
+  - Give the EDIBLE weight, not the weight of the thing in the shop. An avocado is about 150g of flesh from a 200g fruit; a lime yields 30g of juice; bone-in chicken thighs lose a third to the bone; a head of garlic is 40g of cloves. Weighing the stone, skin or bone into a recipe inflates that line by whatever you throw away.
   - Sanity-check the total against the servings before answering. Add up every line: a main course lands near 350–550g per serving. If your numbers imply a kilo a head, one of them is wrong — usually the bulkiest carb.
 - If servings aren't stated, estimate from total quantities.
 - Steps should be concise and imperative. Split run-on caption text into proper steps.

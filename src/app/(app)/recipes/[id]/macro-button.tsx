@@ -148,6 +148,11 @@ export function MacroButton({
                             {line.stateWarning}
                           </span>
                         ) : null}
+                        {line.assumption ? (
+                          <span className="block opacity-70">
+                            {line.assumption}
+                          </span>
+                        ) : null}
                       </td>
                       <td className="py-1 text-right whitespace-nowrap">
                         {line.kcal != null ? `${Math.round(line.kcal)} kcal` : "—"}

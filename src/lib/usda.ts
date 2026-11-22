@@ -197,6 +197,26 @@ const HYDRATED_WORDS = [
 ];
 const DRY_WORDS = ["dry", "dried", "uncooked", "raw", "fresh"];
 
+/**
+ * Foods where dry and cooked are different numbers, not slightly different
+ * ones — they absorb two or three times their own weight in water.
+ *
+ * For anything on this list an unstated ingredient line is a guess, and the
+ * guess is worth two hundred calories a serving. Everything else — a carrot,
+ * a chicken thigh, a spoon of oil — barely moves between states, so an
+ * assumption there isn't worth mentioning.
+ */
+const WATER_SENSITIVE = [
+  "rice", "pasta", "spaghetti", "macaroni", "penne", "noodle", "orzo",
+  "couscous", "quinoa", "lentil", "bean", "chickpea", "oat", "barley",
+  "bulgur", "farro", "freekeh", "pearl",
+];
+
+export function isWaterSensitive(item: string): boolean {
+  const words = new Set(item.toLowerCase().split(/[^a-z]+/).filter(Boolean));
+  return WATER_SENSITIVE.some((w) => words.has(w) || words.has(w + "s"));
+}
+
 export function stateOf(text: string): FoodState {
   const tokens = text.toLowerCase().split(/[^a-z]+/).filter(Boolean);
   if (HYDRATED_WORDS.some((w) => tokens.includes(w))) return "hydrated";

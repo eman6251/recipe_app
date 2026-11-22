@@ -14,6 +14,7 @@ import {
   addMacros,
   roundMacros,
   UsdaAuthError,
+  isWaterSensitive,
   stateOf,
   type UsdaMatch,
 } from "@/lib/usda";
@@ -32,6 +33,12 @@ export type MacroLine = {
    * food is right and only the water is missing.
    */
   stateWarning?: string;
+  /**
+   * The state this line was read as, when the line itself didn't say and the
+   * answer matters. Not a warning — the assumption is usually right — but
+   * the one thing you need shown to tell whether it was.
+   */
+  assumption?: string;
 };
 
 export type MacroComputeResult =
@@ -65,6 +72,7 @@ These numbers drive the whole nutrition calculation and one wrong line can domin
 - A named packaged product with no quantity means ONE standard retail package, not an unbounded amount. Use the real package size (a bag of Trader Joe's noodles is 16oz/454g, a can of beans 15oz/425g). Never inflate to "enough for the servings" — recipes are written around the package.
 - Weigh things AS PURCHASED, in the state the line names: dry pasta dry, raw meat raw. Pasta more than doubles in weight when boiled, and that error alone can double a recipe's calories.
 - Canned goods are weighed DRAINED unless the recipe clearly uses the liquid. A 15oz/425g can of beans or chickpeas drains to roughly 240g; a can of tomatoes is used whole. Giving the gross tin weight for something that gets rinsed overstates the line by most of half.
+- Give the EDIBLE weight, not the weight of the thing in the shop. An avocado is about 150g of flesh from a 200g fruit; a lime yields 30g of juice; bone-in chicken thighs lose a third to the bone; a head of garlic is 40g of cloves. Weighing the stone, skin or bone into a recipe inflates that line by whatever you throw away.
 - Sanity-check the total against the servings before answering. A main course lands near 350–550g per serving; if your numbers imply a kilo a head, one of them is wrong — usually the bulkiest carb.
 
 Give your best estimate; use null only when genuinely impossible.`;
@@ -339,6 +347,25 @@ export async function computeMacros(
     const got = stateOf(match.description);
     const mismatched = wanted !== "unstated" && got !== "unstated" && wanted !== got;
 
+    /*
+     * Say which way an unstated grain was read.
+     *
+     * "Jasmine rice" with no further word is taken as dry, because that's
+     * how a recipe weighs what you tip out of the bag — and at 356 kcal per
+     * 100g against a cooked 130, being wrong about it is worth a couple of
+     * hundred calories a serving. The assumption is usually right and is
+     * never going to be visible from the total, so it's printed.
+     */
+    const density = grams > 0 ? (lineMacros.kcal / grams) * 100 : 0;
+    const assumption =
+      wanted === "unstated" && isWaterSensitive(ing.item)
+        ? density >= 250
+          ? "read as dry weight — write “cooked” into the ingredient if it isn’t"
+          : density > 0 && density < 200
+            ? "read as cooked weight — write “dry” into the ingredient if it isn’t"
+            : undefined
+        : undefined;
+
     lines.push({
       item: ing.item,
       grams,
@@ -349,6 +376,7 @@ export async function computeMacros(
           ? "matched a dry entry — likely far too high"
           : "matched a prepared entry — likely far too low"
         : undefined,
+      assumption,
     });
     updates.push({ id: ing.id, grams, fdc_id: match.fdc_id, macros: lineMacros });
   }
