@@ -15,6 +15,7 @@ import {
   roundMacros,
   UsdaAuthError,
   isWaterSensitive,
+  cookedWeight,
   stateOf,
   type UsdaMatch,
 } from "@/lib/usda";
@@ -23,6 +24,13 @@ import type { Macros, RecipeIngredient } from "@/lib/types";
 export type MacroLine = {
   item: string;
   grams: number | null;
+  /**
+   * What `grams` weighs once cooked, for the foods that swell — set only when
+   * the line was priced as dry. Nobody eats dry rice, so the weight in the
+   * bowl is the one that means anything; the macros stay on the dry basis,
+   * where they're exact.
+   */
+  cookedGrams?: number | null;
   /** USDA food description it matched, or null if skipped. */
   match: string | null;
   kcal: number | null;
@@ -326,6 +334,12 @@ export async function computeMacros(
       lines.push({
         item: ing.item,
         grams,
+        // Same read as below, off the cached figure — a reused line should
+        // show the cooked weight too, not only a freshly matched one.
+        cookedGrams:
+          (ing.macros.kcal / grams) * 100 >= 250
+            ? cookedWeight(ing.item, grams)
+            : null,
         match: `cached (FDC #${ing.fdc_id})`,
         kcal: ing.macros.kcal,
       });
@@ -357,6 +371,19 @@ export async function computeMacros(
      * never going to be visible from the total, so it's printed.
      */
     const density = grams > 0 ? (lineMacros.kcal / grams) * 100 : 0;
+
+    /*
+     * A dry weight, said out loud as what it becomes.
+     *
+     * Energy density is the tell, and a better one than the wording: at 360
+     * kcal/100g this line was priced as dry whether or not it said so, and
+     * at 130 it was priced cooked and needs no conversion. Reading the
+     * number rather than the description also means a line that says
+     * nothing still gets the right treatment.
+     */
+    const cookedGrams =
+      density >= 250 ? cookedWeight(ing.item, grams) : null;
+
     const assumption =
       wanted === "unstated" && isWaterSensitive(ing.item)
         ? density >= 250
@@ -369,6 +396,7 @@ export async function computeMacros(
     lines.push({
       item: ing.item,
       grams,
+      cookedGrams,
       match: match.description,
       kcal: lineMacros.kcal,
       stateWarning: mismatched

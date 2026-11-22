@@ -131,6 +131,17 @@ export function MacroButton({
                       <td className="py-1 pr-2 font-medium">{line.item}</td>
                       <td className="py-1 pr-2 whitespace-nowrap">
                         {line.grams != null ? `${Math.round(line.grams)}g` : "—"}
+                        {/* The weight you actually eat. A dry weight is what
+                            the recipe measured, but 275g of rice out of the
+                            bag is ~770g in the bowl, and that's the portion
+                            you can picture. Approximate on purpose: the
+                            calories are exact on the dry basis either way,
+                            since water carries none. */}
+                        {line.cookedGrams != null ? (
+                          <span className="block opacity-70">
+                            ≈{Math.round(line.cookedGrams)}g cooked
+                          </span>
+                        ) : null}
                       </td>
                       {/* Energy density is what exposes a cooked-vs-dry mix-up:
                           dry pasta is ~360 kcal/100g and cooked is ~150. */}

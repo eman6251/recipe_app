@@ -201,20 +201,67 @@ const DRY_WORDS = ["dry", "dried", "uncooked", "raw", "fresh"];
  * Foods where dry and cooked are different numbers, not slightly different
  * ones — they absorb two or three times their own weight in water.
  *
- * For anything on this list an unstated ingredient line is a guess, and the
- * guess is worth two hundred calories a serving. Everything else — a carrot,
- * a chicken thigh, a spoon of oil — barely moves between states, so an
- * assumption there isn't worth mentioning.
+ * The value is the cooked weight of one gram dry, used to say what a dry
+ * weight turns into on the plate. Nobody eats dry rice, so a recipe that
+ * weighed 275g out of the bag is describing something closer to 770g in the
+ * bowl, and that's the number worth seeing.
+ *
+ * The factors are derived from USDA's own pairs — dry white rice at 360
+ * kcal/100g against cooked at 130 gives 2.8 — rather than from a cookbook,
+ * so the dry and cooked views of a line agree with each other. Water carries
+ * no calories, so this only ever changes the weight shown, never the energy:
+ * a factor that's a little off makes the cooked weight approximate and
+ * leaves every macro exact.
+ *
+ * null means the food swells but by no fixed amount. Porridge weighs whatever
+ * liquid you poured in, and "pearl" could be barley or couscous — so those
+ * get the state note below and no invented weight.
+ *
+ * Anything off this list — a carrot, a chicken thigh, a spoon of oil — barely
+ * moves between states, so neither the note nor the conversion applies.
  */
-const WATER_SENSITIVE = [
-  "rice", "pasta", "spaghetti", "macaroni", "penne", "noodle", "orzo",
-  "couscous", "quinoa", "lentil", "bean", "chickpea", "oat", "barley",
-  "bulgur", "farro", "freekeh", "pearl",
-];
+const HYDRATION: Record<string, number | null> = {
+  rice: 2.8,
+  pasta: 2.4,
+  spaghetti: 2.4,
+  macaroni: 2.4,
+  penne: 2.4,
+  noodle: 2.4,
+  orzo: 2.4,
+  couscous: 3.3,
+  quinoa: 3.0,
+  lentil: 3.0,
+  bean: 2.6,
+  chickpea: 2.3,
+  barley: 2.9,
+  bulgur: 4.1,
+  farro: 2.6,
+  freekeh: 2.6,
+  oat: null,
+  pearl: null,
+};
+
+/** The words of an ingredient line, singular and plural both matched. */
+function matchFood(item: string): string | null {
+  const words = new Set(item.toLowerCase().split(/[^a-z]+/).filter(Boolean));
+  return (
+    Object.keys(HYDRATION).find((w) => words.has(w) || words.has(w + "s")) ??
+    null
+  );
+}
 
 export function isWaterSensitive(item: string): boolean {
-  const words = new Set(item.toLowerCase().split(/[^a-z]+/).filter(Boolean));
-  return WATER_SENSITIVE.some((w) => words.has(w) || words.has(w + "s"));
+  return matchFood(item) !== null;
+}
+
+/**
+ * What a dry weight of this food weighs once cooked, or null if the food
+ * doesn't swell predictably (or at all).
+ */
+export function cookedWeight(item: string, dryGrams: number): number | null {
+  const food = matchFood(item);
+  const factor = food ? HYDRATION[food] : null;
+  return factor != null ? dryGrams * factor : null;
 }
 
 export function stateOf(text: string): FoodState {
